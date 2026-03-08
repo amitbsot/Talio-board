@@ -889,9 +889,13 @@
         }
 
         window.startGame = function() {
-            if(!myTeamId) { alert(lang==='he'?"אנא בחר קבוצה קודם!":"Please select a team first!"); return; }
-            update(turnManager.roomRef, { gameStarted: true });
-        };
+    if(!myTeamId) { alert(lang==='he'?"אנא בחר קבוצה קודם!":"Please select a team first!"); return; }
+    update(turnManager.roomRef, { 
+        gameStarted: true,
+        difficulty: pendingDifficulty // <-- הוספנו את שמירת הרמה כאן
+    });
+};
+
 
         window.openSettings = function() {
             if(!turnManager || !turnManager.currentState) return;
@@ -1032,7 +1036,8 @@
                 }
             }
 
-            updateDifficultyUI(isEditMode ? pendingDifficulty : state.difficulty);
+            updateDifficultyUI((isEditMode || !state.gameStarted) ? pendingDifficulty : state.difficulty);
+
 
             document.querySelectorAll('#modal-team-buttons .team-btn').forEach(btn => btn.style.border = '3px solid transparent');
             if(myTeamId) {
