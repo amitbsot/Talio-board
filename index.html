@@ -73,7 +73,7 @@
         }
         .btn-join-room:active { transform: translateY(4px); box-shadow: none; }
 
-        /* --- שאר העיצוב (זהה לקודם) --- */
+        /* --- שאר העיצוב --- */
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.6);
             display: flex; justify-content: center; align-items: center; z-index: 200;
@@ -255,8 +255,8 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update, get, onDisconnect } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, update, get, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDiGUmCG08Ke6JYYR_gW6r-JMwdxt0aJDk",
@@ -395,11 +395,17 @@
             document.getElementById('btn-skip').textContent = d.skipBtn;
             document.getElementById('btn-correct').textContent = d.correctBtn;
 
-            // עדכון לוח במקרה של שינוי שפה
             let sq0 = document.getElementById('sq-0');
             if(sq0) sq0.innerText = d.startSquare;
             let sqMax = document.getElementById('sq-' + MAX_STEPS);
             if(sqMax) sqMax.innerText = d.finishSquare;
+        }
+
+        // תיקון מספר 2: פונקציית עזר להצגת זמן תקינה
+        function formatTime(seconds) {
+            let m = Math.floor(seconds / 60);
+            let s = seconds % 60;
+            return `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
         }
 
         const myPlayerId = Math.random().toString(36).substring(2, 10); 
@@ -490,30 +496,21 @@
 
                     this.currentState = newState;
                     
-                    // --- חומת המגן: מניעת גניבת הניהול ---
-
-                    // 1. עדכון ספירת שחקנים לתצוגה (חובה לממשק)
                     if (newState.teams) {
                         newState.teams.forEach(team => {
                             team.playerCount = team.players ? Object.keys(team.players).length : 0;
                         });
                     }
 
-                    // 2. אם אין מנהל בכלל בחדר (חדר חדש לגמרי), הראשון שלוקח זוכה
                     if (!newState.adminId) {
                         update(this.roomRef, { adminId: this.playerId });
                         return;
                     }
 
-                    // 3. בודקים אם המנהל קיים באחד מ-2 מקומות:
                     let isAdminActive = false;
-
-                    // בדיקה ראשונה: האם המנהל ברשימת הנוכחות הכללית?
                     if (newState.players && newState.players[newState.adminId]) {
                         isAdminActive = true;
                     }
-
-                    // בדיקה שנייה (גיבוי קריטי): האם המנהל באחת הקבוצות?
                     if (newState.teams) {
                         newState.teams.forEach(team => {
                             if (team.players && team.players[newState.adminId]) {
@@ -522,11 +519,8 @@
                         });
                     }
 
-                    // 4. רק אם המנהל באמת התאדה מכל מקום אפשרי, נעביר את הניהול
                     if (!isAdminActive) {
                         let activePlayers = [];
-                        
-                        // אוספים את כל מי שנשאר כדי למצוא את הוותיק ביותר
                         if (newState.players) {
                             activePlayers = Object.keys(newState.players).map(id => ({
                                 id: id,
@@ -542,16 +536,12 @@
                             });
                         }
                         
-                        // ממיינים לפי זמן ההצטרפות
                         activePlayers.sort((a, b) => a.joinTime - b.joinTime);
-                        
-                        // השחקן הוותיק ביותר מקבל את שרביט הניהול
                         if (activePlayers.length > 0 && activePlayers[0].id === this.playerId) {
                             update(this.roomRef, { adminId: this.playerId });
                             return; 
                         }
                     }
-                    // --------------------------------------------------
 
                     const activeTeams = newState.teams.filter(t => t.playerCount > 0);
                     if (newState.turnStatus === 'transitioning' && activeTeams.length > 0 && newState.teams[newState.currentTeamIndex].playerCount === 0) {
@@ -597,11 +587,14 @@
 
             async drawCard(isCorrect) {
                 const state = this.currentState;
+                // הוספת הגנה במקרה של שגיאת סנכרון רגעית
                 const activeTeam = state.teams[state.currentTeamIndex];
-                if (state.turnStatus !== 'active' || state.describerId !== this.playerId) return;
+                if (!activeTeam || state.turnStatus !== 'active' || state.describerId !== this.playerId) return;
 
                 let deck = state.deck || [];
+                // אם המערך הגיע ריק מ-Firebase (undefined), השורה הבאה לא תעשה כלום ומערך ריק יעבור לבדיקה הבאה
                 deck.shift(); 
+                
                 if (deck.length === 0) {
                     deck = Array.from({length: i18n[lang].cards.length}, (_, i) => i);
                     deck = shuffleDeck(deck);
@@ -667,6 +660,8 @@
             document.querySelectorAll('#modal-team-buttons .team-btn').forEach(btn => btn.style.border = '3px solid transparent');
             const activeBtn = document.querySelector(`#modal-team-buttons .team-btn.${myTeamId}`);
             if(activeBtn) activeBtn.style.border = '3px solid #333';
+            
+            renderState(turnManager.currentState);
         };
 
         window.setDifficulty = function(level) {
@@ -828,9 +823,24 @@
             const isAdmin = (state.adminId === myPlayerId);
             updatePlayerInfoDisplay(); 
 
-            if(state.gameStarted && !isEditMode) {
+            const needsTeam = !myTeamId;
+
+            if (needsTeam) {
+                uiModal.classList.remove('hidden');
+                document.getElementById('team-selection-group').classList.remove('hidden');
+                document.getElementById('admin-setup-controls').classList.add('hidden');
+                document.getElementById('admin-edit-controls').classList.add('hidden');
+                
+                if (state.gameStarted) {
+                    document.getElementById('non-admin-msg').classList.add('hidden');
+                } else if (!isAdmin) {
+                    document.getElementById('non-admin-msg').classList.remove('hidden');
+                }
+            } 
+            else if(state.gameStarted && !isEditMode) {
                 uiModal.classList.add('hidden');
-            } else if (!state.gameStarted && !isEditMode) {
+            } 
+            else if (!state.gameStarted && !isEditMode) {
                 uiModal.classList.remove('hidden');
                 document.getElementById('team-selection-group').classList.remove('hidden');
                 if(isAdmin) {
@@ -884,11 +894,11 @@
                 return; 
             }
 
-            if(!state.gameStarted) return; 
+            if(!state.gameStarted || !myTeamId) return; 
 
+            // הוספת הגנה מקריסה בשורות הבאות
             const currentTeam = state.teams[state.currentTeamIndex];
-            const activeTeamsCount = state.teams.filter(t => t.playerCount > 0).length;
-            const isSingleTeamMode = activeTeamsCount === 1;
+            if (!currentTeam) return; 
 
             if (state.turnStatus === 'active') {
                 if (!localTimerInterval) {
@@ -902,12 +912,14 @@
                             timeLeft = 0;
                             if (turnManager.currentState.describerId === myPlayerId) turnManager.endTurn();
                         }
-                        uiTimer.textContent = `00:${timeLeft < 10 ? '0'+timeLeft : timeLeft}`;
+                        // שימוש בפונקציה החדשה לתצוגת זמן
+                        uiTimer.textContent = formatTime(timeLeft);
                     }, 250); 
                 }
             } else {
                 if (localTimerInterval) { clearInterval(localTimerInterval); localTimerInterval = null; }
-                uiTimer.textContent = `00:${state.turnDuration}`;
+                // שימוש בפונקציה החדשה לתצוגת זמן
+                uiTimer.textContent = formatTime(state.turnDuration);
             }
 
             if (state.turnStatus === 'active') {
@@ -950,7 +962,8 @@
                 } else {
                     if (myTeamId === currentTeam.id) {
                         let canStart = true;
-                        if (isSingleTeamMode && currentTeam.playerCount > 1 && state.lastDescriberId === myPlayerId) {
+                        // תיקון מספר 3: בדיקה כללית כדי ששחקן לא יתאר פעמיים ברצף אם יש לו חברים לקבוצה
+                        if (currentTeam.playerCount > 1 && state.lastDescriberId === myPlayerId) {
                             canStart = false; 
                         }
                         if (canStart) {
