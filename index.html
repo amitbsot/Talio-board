@@ -177,6 +177,10 @@
         <div class="modal-content">
             <h2 id="modal-title">הגדרות חדר</h2>
             
+            <div id="non-admin-note" class="hidden" style="color:#e74c3c; font-weight:bold; font-size: 14px; margin-bottom: 15px;">
+                רק מנהל החדר רשאי לשנות הגדרות
+            </div>
+
             <div class="settings-group">
                 <h4 id="txt-difficulty">רמת קושי</h4>
                 <div class="diff-buttons">
@@ -212,6 +216,18 @@
 
             <div id="non-admin-msg" class="hidden" style="margin-top:20px; color:#777; font-weight:bold; font-size: 16px;">
                 ממתין למנהל החדר שיתחיל את המשחק...
+            </div>
+        </div>
+    </div>
+
+    <div id="winner-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h1 id="winner-title" style="font-size: 30px; margin-top: 0; margin-bottom: 10px;"></h1>
+            <div id="winner-admin-controls" class="hidden">
+                <button id="btn-restart-game" class="btn-start" onclick="restartToTeamSelection()" style="width:100%; margin-top: 20px;">התחל מחדש</button>
+            </div>
+            <div id="winner-non-admin-msg" class="hidden" style="margin-top:20px; color:#777; font-weight:bold; font-size: 16px;">
+                ממתין למנהל החדר שיתחיל מחדש...
             </div>
         </div>
     </div>
@@ -287,6 +303,7 @@
                 waitTeammate: "📢 ממתינים שחבר קבוצה אחר יתחיל את התור...",
                 roleInspector: "👁️ מצב פיקוח: ודאו שהם לא אומרים את המילים!", roleDescriber: "🗣️ אתה המתאר! תן רמזים לקבוצה שלך",
                 roleGuesser: "🧠 התור שלכם! חבר קבוצה מתאר את המילה, נחשו מהי!",
+                onlyAdminSettings: "רק מנהל החדר רשאי לשנות הגדרות", restartBtn: "התחל מחדש", waitingRestart: "ממתין למנהל החדר שיתחיל מחדש...",
                 cards: [
                     {"word":"כלב", "icon":"🐶", "taboo":["חיה","נבחן","חתול","עצם","רצועה","זנב"]},
                     {"word":"שמש", "icon":"☀️", "taboo":["יום","אור","חם","שמיים","צהוב","כוכב"]},
@@ -326,6 +343,7 @@
                 waitTeammate: "📢 Waiting for a teammate to start the turn...",
                 roleInspector: "👁️ Inspector: Make sure they don't say the taboo words!", roleDescriber: "🗣️ You are describing! Give clues.",
                 roleGuesser: "🧠 Your turn! A teammate is describing, guess the word!",
+                onlyAdminSettings: "Only the room admin can change settings", restartBtn: "Restart Game", waitingRestart: "Waiting for room admin to restart...",
                 cards: [
                     {"word":"Dog", "icon":"🐶", "taboo":["Animal","Bark","Cat","Bone","Leash","Tail"]},
                     {"word":"Sun", "icon":"☀️", "taboo":["Day","Light","Hot","Sky","Yellow","Star"]},
@@ -391,6 +409,10 @@
             document.getElementById('btn-modal-confirm').textContent = d.confirm;
             document.getElementById('non-admin-msg').textContent = d.waitingAdmin;
             
+            document.getElementById('non-admin-note').textContent = d.onlyAdminSettings;
+            document.getElementById('btn-restart-game').textContent = d.restartBtn;
+            document.getElementById('winner-non-admin-msg').textContent = d.waitingRestart;
+
             document.getElementById('btn-start-turn').textContent = d.startGame;
             document.getElementById('btn-skip').textContent = d.skipBtn;
             document.getElementById('btn-correct').textContent = d.correctBtn;
@@ -401,7 +423,6 @@
             if(sqMax) sqMax.innerText = d.finishSquare;
         }
 
-        // תיקון מספר 2: פונקציית עזר להצגת זמן תקינה
         function formatTime(seconds) {
             let m = Math.floor(seconds / 60);
             let s = seconds % 60;
@@ -507,16 +528,10 @@
                         return;
                     }
 
+                    // בדיקה מקיפה מי המנהל על סמך רשימת השחקנים הכללית (שכוללת גם שחקנים שטרם בחרו קבוצה)
                     let isAdminActive = false;
                     if (newState.players && newState.players[newState.adminId]) {
                         isAdminActive = true;
-                    }
-                    if (newState.teams) {
-                        newState.teams.forEach(team => {
-                            if (team.players && team.players[newState.adminId]) {
-                                isAdminActive = true;
-                            }
-                        });
                     }
 
                     if (!isAdminActive) {
@@ -526,15 +541,7 @@
                                 id: id,
                                 joinTime: newState.players[id].joinTime || 0
                             }));
-                        } else if (newState.teams) {
-                            newState.teams.forEach(team => {
-                                if (team.players) {
-                                    Object.keys(team.players).forEach(pid => {
-                                        activePlayers.push({ id: pid, joinTime: team.players[pid].joinTime || 0 });
-                                    });
-                                }
-                            });
-                        }
+                        } 
                         
                         activePlayers.sort((a, b) => a.joinTime - b.joinTime);
                         if (activePlayers.length > 0 && activePlayers[0].id === this.playerId) {
@@ -587,12 +594,10 @@
 
             async drawCard(isCorrect) {
                 const state = this.currentState;
-                // הוספת הגנה במקרה של שגיאת סנכרון רגעית
                 const activeTeam = state.teams[state.currentTeamIndex];
                 if (!activeTeam || state.turnStatus !== 'active' || state.describerId !== this.playerId) return;
 
                 let deck = state.deck || [];
-                // אם המערך הגיע ריק מ-Firebase (undefined), השורה הבאה לא תעשה כלום ומערך ריק יעבור לבדיקה הבאה
                 deck.shift(); 
                 
                 if (deck.length === 0) {
@@ -623,6 +628,12 @@
 
             uiLobby.style.display = 'none';
             const roomRef = ref(db, 'rooms/' + roomId);
+
+            // רישום מידי של השחקן לרשימת השחקנים הכללית לטובת שמירת זכויות ניהול מבוססות זמן כניסה
+            const rootPlayerRef = ref(db, `rooms/${roomId}/players/${myPlayerId}`);
+            await onDisconnect(rootPlayerRef).remove();
+            await set(rootPlayerRef, { joinTime: Date.now(), active: true });
+
             turnManager = new GameTurnManager(roomRef, myPlayerId);
             
             await turnManager.connect();
@@ -714,11 +725,13 @@
 
             const isAdmin = (turnManager.currentState.adminId === myPlayerId);
             if(isAdmin) {
+                document.getElementById('non-admin-note').classList.add('hidden');
                 document.getElementById('btn-change-teams').classList.remove('hidden');
                 document.getElementById('btn-modal-confirm').classList.remove('hidden');
                 document.getElementById('edit-warning').classList.remove('hidden');
                 document.getElementById('btn-modal-cancel').textContent = i18n[lang].cancel;
             } else {
+                document.getElementById('non-admin-note').classList.remove('hidden');
                 document.getElementById('btn-change-teams').classList.add('hidden');
                 document.getElementById('btn-modal-confirm').classList.add('hidden');
                 document.getElementById('edit-warning').classList.add('hidden');
@@ -754,6 +767,7 @@
             if (turnManager.currentState.adminId !== myPlayerId) return;
             isEditMode = false;
             uiModal.classList.add('hidden');
+            document.getElementById('winner-modal').classList.add('hidden'); // הסתרת מסך ניצחון במידה והיה פתוח
 
             const state = turnManager.currentState;
             let updates = {
@@ -888,15 +902,29 @@
                 uiBtnStartTurn.classList.add('hidden');
 
                 if (localTimerInterval) { clearInterval(localTimerInterval); localTimerInterval = null; }
-                uiStatus.textContent = `${d.winnerPrefix}${d.teamNames[winnerTeam.id]}${d.winnerSuffix}`;
-                uiStatus.style.fontSize = "26px";
-                uiStatus.style.color = teamColors[winnerTeam.id];
+                
+                // הופעת חלון הניצחון
+                document.getElementById('winner-modal').classList.remove('hidden');
+                const winnerTitle = document.getElementById('winner-title');
+                winnerTitle.textContent = `${d.winnerPrefix}${d.teamNames[winnerTeam.id]}${d.winnerSuffix}`;
+                winnerTitle.style.color = teamColors[winnerTeam.id];
+
+                // הצגת כפתור "התחל מחדש" רק למנהל החדר, לשאר נציג הודעת המתנה
+                if (isAdmin) {
+                    document.getElementById('winner-admin-controls').classList.remove('hidden');
+                    document.getElementById('winner-non-admin-msg').classList.add('hidden');
+                } else {
+                    document.getElementById('winner-admin-controls').classList.add('hidden');
+                    document.getElementById('winner-non-admin-msg').classList.remove('hidden');
+                }
+                
                 return; 
+            } else {
+                document.getElementById('winner-modal').classList.add('hidden');
             }
 
             if(!state.gameStarted || !myTeamId) return; 
 
-            // הוספת הגנה מקריסה בשורות הבאות
             const currentTeam = state.teams[state.currentTeamIndex];
             if (!currentTeam) return; 
 
@@ -912,13 +940,11 @@
                             timeLeft = 0;
                             if (turnManager.currentState.describerId === myPlayerId) turnManager.endTurn();
                         }
-                        // שימוש בפונקציה החדשה לתצוגת זמן
                         uiTimer.textContent = formatTime(timeLeft);
                     }, 250); 
                 }
             } else {
                 if (localTimerInterval) { clearInterval(localTimerInterval); localTimerInterval = null; }
-                // שימוש בפונקציה החדשה לתצוגת זמן
                 uiTimer.textContent = formatTime(state.turnDuration);
             }
 
@@ -962,7 +988,6 @@
                 } else {
                     if (myTeamId === currentTeam.id) {
                         let canStart = true;
-                        // תיקון מספר 3: בדיקה כללית כדי ששחקן לא יתאר פעמיים ברצף אם יש לו חברים לקבוצה
                         if (currentTeam.playerCount > 1 && state.lastDescriberId === myPlayerId) {
                             canStart = false; 
                         }
