@@ -926,8 +926,6 @@
         }
         // -----------------------------------------------------------
 
-        const activeTeams = newState.teams ? newState.teams.filter(t => t.playerCount > 0) : [];
-
 
                     const activeTeams = newState.teams ? newState.teams.filter(t => t.playerCount > 0) : [];
                     if (newState.turnStatus === 'transitioning' && activeTeams.length > 0 && newState.teams[newState.currentTeamIndex].playerCount === 0) {
