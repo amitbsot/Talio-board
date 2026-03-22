@@ -870,13 +870,21 @@
             }
 
             async connect() {
-                const snapshot = await get(this.roomRef);
-                let state = snapshot.val();
-                
-                if (!state || !state.teams) {
-                    await this.initializeRoom();
-                }
-            }
+    const snapshot = await get(this.roomRef);
+    let state = snapshot.val();
+    
+    // סופרים כמה שחקנים יש כרגע בחדר
+    let activePlayersCount = 0;
+    if (state && state.players) {
+        activePlayersCount = Object.keys(state.players).length;
+    }
+
+    // אם החדר חדש, או שאתה השחקן היחיד בו (כלומר החדר ננטש לפני שנכנסת) - נאפס אותו לחלוטין
+    if (!state || !state.teams || activePlayersCount <= 1) {
+        await this.initializeRoom();
+    }
+}
+
 
             listenToState() {
                 onValue(this.roomRef, (snapshot) => {
@@ -899,14 +907,28 @@
                         }));
                     }
                     
-                    activePlayers.sort((a, b) => a.joinTime - b.joinTime);
-                    let correctAdminId = activePlayers.length > 0 ? activePlayers[0].id : null;
+                            activePlayers.sort((a, b) => a.joinTime - b.joinTime);
+        let correctAdminId = activePlayers.length > 0 ? activePlayers[0].id : null;
 
-                    if (correctAdminId && newState.adminId !== correctAdminId) {
-                        if (correctAdminId === this.playerId) {
-                            update(this.roomRef, { adminId: this.playerId });
-                        }
-                    }
+        if (correctAdminId && newState.adminId !== correctAdminId) {
+            if (correctAdminId === this.playerId) {
+                update(this.roomRef, { adminId: this.playerId });
+            }
+        }
+
+        // --- תוספת לאיפוס ומחיקת החדר ביציאה של השחקן האחרון ---
+        let activePlayersCount = activePlayers.length;
+        if (activePlayersCount === 1 && activePlayers[0].id === this.playerId) {
+            // אם אני השחקן האחרון שנשאר בחדר, נגדיר פקודה למחיקת *כל* החדר כשאתנתק
+            onDisconnect(this.roomRef).remove();
+        } else if (activePlayersCount > 1) {
+            // אם יש איתי עוד שחקנים, נבטל את פקודת המחיקה הכוללת (כדי שהחדר לא יימחק כשחקן בודד יוצא)
+            onDisconnect(this.roomRef).cancel();
+        }
+        // -----------------------------------------------------------
+
+        const activeTeams = newState.teams ? newState.teams.filter(t => t.playerCount > 0) : [];
+
 
                     const activeTeams = newState.teams ? newState.teams.filter(t => t.playerCount > 0) : [];
                     if (newState.turnStatus === 'transitioning' && activeTeams.length > 0 && newState.teams[newState.currentTeamIndex].playerCount === 0) {
