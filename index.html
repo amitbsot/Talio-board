@@ -150,7 +150,6 @@
         text-align: center; font-size: 18px; font-weight: bold;
         width: 90%; max-width: 350px; margin-top: 20px; border: 1px solid #d1f2eb;
     }
-    /* BUG 3 FIX — last card error */
     .error-box {
         background-color: #fadbd8; color: #922b21; padding: 12px 18px; border-radius: 10px;
         text-align: center; font-size: 17px; font-weight: bold;
@@ -288,7 +287,6 @@
 <div id="personal-area">
     <button id="btn-start-turn" class="btn-start hidden">התחל תור</button>
     <div id="role-message" class="message-box hidden"></div>
-    <!-- BUG 3 FIX — last card error banner -->
     <div id="last-card-error" class="error-box hidden"></div>
 
 ```
@@ -323,7 +321,6 @@ import {
     getDatabase, ref, set, onValue, update, get, remove, onDisconnect, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
-// ─── Firebase config ──────────────────────────────────────────────────────────
 const firebaseConfig = {
     apiKey:      "AIzaSyDiGUmCG08Ke6JYYR_gW6r-JMwdxt0aJDk",
     authDomain:  "talio-board.firebaseapp.com",
@@ -333,7 +330,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
 
-// ─── i18n ─────────────────────────────────────────────────────────────────────
 let lang = 'he';
 
 const CARDS_HE = [
@@ -359,7 +355,6 @@ const CARDS_HE = [
     {word:"שעון",    icon:"⌚", taboo:["זמן","מחוגים","יד","שעה","לענוד","מעורר"]},
     {word:"חתול",    icon:"🐱", taboo:["מיאו","כלב","חיה","שפם","זנב","פח"]}
 ];
-
 const CARDS_EN = [
     {word:"Dog",       icon:"🐶", taboo:["Animal","Bark","Cat","Bone","Leash","Tail"]},
     {word:"Sun",       icon:"☀️", taboo:["Day","Light","Hot","Sky","Yellow","Star"]},
@@ -383,9 +378,7 @@ const CARDS_EN = [
     {word:"Clock",     icon:"⌚", taboo:["Time","Hands","Wrist","Hour","Wear","Alarm"]},
     {word:"Cat",       icon:"🐱", taboo:["Meow","Dog","Animal","Whiskers","Tail","Litter"]}
 ];
-
-// Both decks must have the same length — this is enforced here once
-console.assert(CARDS_HE.length === CARDS_EN.length, "Card decks must be the same length!");
+console.assert(CARDS_HE.length === CARDS_EN.length);
 const DECK_SIZE = CARDS_HE.length;
 
 const i18n = {
@@ -439,465 +432,219 @@ const i18n = {
     }
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function shuffleArray(array) {
-    const a = [...array];
-    for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
-    }
+function shuffleArray(a) {
+    a = [...a];
+    for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
     return a;
 }
-
-function freshDeck() {
-    // Returns a shuffled array of all card indices
-    return shuffleArray(Array.from({ length: DECK_SIZE }, (_, i) => i));
+function freshDeck() { return shuffleArray(Array.from({length:DECK_SIZE},(_,i)=>i)); }
+function formatTime(s) {
+    s=Math.max(0,Math.floor(s)); const m=Math.floor(s/60),r=s%60;
+    return `${m<10?'0'+m:m}:${r<10?'0'+r:r}`;
 }
+function hasInvalidChars(n) { return /[.#$[\]/]/.test(n); }
 
-function formatTime(seconds) {
-    const s = Math.max(0, Math.floor(seconds));
-    const m = Math.floor(s / 60);
-    const r = s % 60;
-    return `${m < 10 ? '0'+m : m}:${r < 10 ? '0'+r : r}`;
-}
+const myPlayerId = Math.random().toString(36).substring(2,10);
+let myTeamId=null, myPlayerNumber=null, myJoinTime=null, isEditMode=false;
+let pendingDifficulty='medium', adminDifficultyChosen=false;
+let turnManager=null, localTimerInterval=null, lastDisplayedCardIndex=-1;
+let isProcessingCard=false, endTurnTimeout=null, lastCardErrorTimeout=null;
 
-// FIX #12 — sanitize room name: Firebase paths cannot contain . # $ [ ] /
-function sanitizeRoomId(raw) {
-    return raw.replace(/[.#$[\]/]/g, '_');
-}
+const MAX_STEPS=30;
+const teamColors  ={blue:'#2874A6',red:'#943126',purple:'#6C3483',green:'#1E8449',yellow:'#B7950B'};
+const teamBgColors={blue:'#D6EAF8',red:'#FADBD8',purple:'#E8DAEF',green:'#D5F5E3',yellow:'#FCF3CF'};
 
-function hasInvalidChars(name) {
-    return /[.#$[\]/]/.test(name);
-}
-
-// ─── State ────────────────────────────────────────────────────────────────────
-const myPlayerId = Math.random().toString(36).substring(2, 10);
-let myTeamId           = null;
-let myPlayerNumber     = null;
-let myJoinTime         = null;
-let isEditMode         = false;
-let pendingDifficulty  = 'medium';
-// BUG 1 FIX — tracks whether admin explicitly picked a difficulty this session
-let adminDifficultyChosen = false;
-let turnManager        = null;
-let localTimerInterval = null;
-let lastDisplayedCardIndex = -1;
-
-// FIX #2 — double-tap guard
-let isProcessingCard   = false;
-
-// FIX #3 — store endTurn setTimeout reference
-let endTurnTimeout     = null;
-// BUG 3 FIX — timeout for auto-hiding the last-card error
-let lastCardErrorTimeout = null;
-
-const MAX_STEPS = 30;
-const teamColors   = { blue:'#2874A6', red:'#943126', purple:'#6C3483', green:'#1E8449', yellow:'#B7950B' };
-const teamBgColors = { blue:'#D6EAF8', red:'#FADBD8', purple:'#E8DAEF', green:'#D5F5E3', yellow:'#FCF3CF' };
-
-// ─── Build board ──────────────────────────────────────────────────────────────
-const boardGrid = document.getElementById('board-grid');
-for (let i = 0; i <= MAX_STEPS; i++) {
-    const sq = document.createElement('div');
-    sq.className = 'square';
-    sq.id = 'sq-' + i;
-    if (i === 0)           sq.innerText = i18n[lang].startSquare;
-    else if (i === MAX_STEPS) { sq.innerText = i18n[lang].finishSquare; sq.classList.add('finish'); }
-    else sq.innerText = i;
+// Build board squares
+const boardGrid=document.getElementById('board-grid');
+for(let i=0;i<=MAX_STEPS;i++){
+    const sq=document.createElement('div'); sq.className='square'; sq.id='sq-'+i;
+    if(i===0) sq.innerText=i18n[lang].startSquare;
+    else if(i===MAX_STEPS){sq.innerText=i18n[lang].finishSquare;sq.classList.add('finish');}
+    else sq.innerText=i;
     boardGrid.appendChild(sq);
 }
 
-// ─── UI refs ──────────────────────────────────────────────────────────────────
-const uiLobby            = document.getElementById('lobby');
-const uiModal            = document.getElementById('setup-modal');
-const uiTimer            = document.getElementById('timer');
-const uiStatus           = document.getElementById('status');
-const uiCardContainer    = document.getElementById('card-container');
-const uiBtnStartTurn     = document.getElementById('btn-start-turn');
-const uiRoleMessage      = document.getElementById('role-message');
-const uiCardRoleTitle    = document.getElementById('card-role-title');
-const uiPlayersCount     = document.getElementById('players-count');
-const uiPlayerInfoDisplay = document.getElementById('player-info-display');
+const uiLobby=document.getElementById('lobby');
+const uiModal=document.getElementById('setup-modal');
+const uiTimer=document.getElementById('timer');
+const uiStatus=document.getElementById('status');
+const uiCardContainer=document.getElementById('card-container');
+const uiBtnStartTurn=document.getElementById('btn-start-turn');
+const uiRoleMessage=document.getElementById('role-message');
+const uiCardRoleTitle=document.getElementById('card-role-title');
+const uiPlayersCount=document.getElementById('players-count');
+const uiPlayerInfoDisplay=document.getElementById('player-info-display');
+const uiLastCardError=document.getElementById('last-card-error');
 
-// ─── Language toggle ──────────────────────────────────────────────────────────
-window.toggleLanguage = function() {
-    const isEn = document.getElementById('lang-toggle-btn').checked;
-    lang = isEn ? 'en' : 'he';
-    document.documentElement.dir = isEn ? 'ltr' : 'rtl';
-    document.getElementById('lbl-he').classList.toggle('lang-active', !isEn);
-    document.getElementById('lbl-en').classList.toggle('lang-active',  isEn);
-    updateStaticText();
-    if (turnManager && turnManager.currentState) renderState(turnManager.currentState);
+window.toggleLanguage=function(){
+    const isEn=document.getElementById('lang-toggle-btn').checked;
+    lang=isEn?'en':'he'; document.documentElement.dir=isEn?'ltr':'rtl';
+    document.getElementById('lbl-he').classList.toggle('lang-active',!isEn);
+    document.getElementById('lbl-en').classList.toggle('lang-active',isEn);
+    updateStaticText(); if(turnManager&&turnManager.currentState)renderState(turnManager.currentState);
 };
 
-function updateStaticText() {
-    const d = i18n[lang];
-    document.getElementById('txt-enter-room').textContent    = d.enterRoom;
-    document.getElementById('room-input').placeholder        = d.roomPlaceholder;
-    document.getElementById('btn-join').textContent          = d.joinBtn;
-    document.getElementById('modal-title').textContent       = d.roomSettings;
-    document.getElementById('txt-difficulty').textContent    = d.difficulty;
-    document.getElementById('diff-easy').textContent         = d.easy;
-    document.getElementById('diff-medium').textContent       = d.medium;
-    document.getElementById('diff-hard').textContent         = d.hard;
-    document.getElementById('txt-select-team').textContent   = d.selectTeam;
-    document.getElementById('team-blue').textContent         = d.teamNames.blue;
-    document.getElementById('team-red').textContent          = d.teamNames.red;
-    document.getElementById('team-purple').textContent       = d.teamNames.purple;
-    document.getElementById('team-green').textContent        = d.teamNames.green;
-    document.getElementById('team-yellow').textContent       = d.teamNames.yellow;
-    document.getElementById('btn-modal-start').textContent   = d.startGame;
-    document.getElementById('btn-change-teams').textContent  = d.changeTeams;
-    document.getElementById('btn-end-game').textContent      = d.endGame;
-    document.getElementById('edit-warning').textContent      = d.editWarning;
-    document.getElementById('btn-modal-confirm').textContent = d.confirm;
-    document.getElementById('non-admin-msg').textContent     = d.waitingAdmin;
-    document.getElementById('non-admin-note').textContent    = d.onlyAdminSettings;
-    document.getElementById('btn-restart-game').textContent  = d.restartBtn;
-    document.getElementById('winner-non-admin-msg').textContent = d.waitingRestart;
-    document.getElementById('btn-start-turn').textContent    = d.startGame;
-    document.getElementById('btn-skip').textContent          = d.skipBtn;
-    document.getElementById('btn-correct').textContent       = d.correctBtn;
-    document.getElementById('txt-shuffling').textContent     = d.shuffling;
-    document.getElementById('btn-resume-play').textContent   = d.backToPlay;
-    const sq0   = document.getElementById('sq-0');
-    if (sq0)  sq0.innerText = d.startSquare;
-    const sqMax = document.getElementById('sq-' + MAX_STEPS);
-    if (sqMax) sqMax.innerText = d.finishSquare;
+function updateStaticText(){
+    const d=i18n[lang];
+    document.getElementById('txt-enter-room').textContent=d.enterRoom;
+    document.getElementById('room-input').placeholder=d.roomPlaceholder;
+    document.getElementById('btn-join').textContent=d.joinBtn;
+    document.getElementById('modal-title').textContent=d.roomSettings;
+    document.getElementById('txt-difficulty').textContent=d.difficulty;
+    document.getElementById('diff-easy').textContent=d.easy;
+    document.getElementById('diff-medium').textContent=d.medium;
+    document.getElementById('diff-hard').textContent=d.hard;
+    document.getElementById('txt-select-team').textContent=d.selectTeam;
+    document.getElementById('team-blue').textContent=d.teamNames.blue;
+    document.getElementById('team-red').textContent=d.teamNames.red;
+    document.getElementById('team-purple').textContent=d.teamNames.purple;
+    document.getElementById('team-green').textContent=d.teamNames.green;
+    document.getElementById('team-yellow').textContent=d.teamNames.yellow;
+    document.getElementById('btn-modal-start').textContent=d.startGame;
+    document.getElementById('btn-change-teams').textContent=d.changeTeams;
+    document.getElementById('btn-end-game').textContent=d.endGame;
+    document.getElementById('edit-warning').textContent=d.editWarning;
+    document.getElementById('btn-modal-confirm').textContent=d.confirm;
+    document.getElementById('non-admin-msg').textContent=d.waitingAdmin;
+    document.getElementById('non-admin-note').textContent=d.onlyAdminSettings;
+    document.getElementById('btn-restart-game').textContent=d.restartBtn;
+    document.getElementById('winner-non-admin-msg').textContent=d.waitingRestart;
+    document.getElementById('btn-start-turn').textContent=d.startGame;
+    document.getElementById('btn-skip').textContent=d.skipBtn;
+    document.getElementById('btn-correct').textContent=d.correctBtn;
+    document.getElementById('txt-shuffling').textContent=d.shuffling;
+    document.getElementById('btn-resume-play').textContent=d.backToPlay;
+    const sq0=document.getElementById('sq-0'); if(sq0)sq0.innerText=d.startSquare;
+    const sqM=document.getElementById('sq-'+MAX_STEPS); if(sqM)sqM.innerText=d.finishSquare;
 }
 
-// ─── GameTurnManager ──────────────────────────────────────────────────────────
 class GameTurnManager {
-    constructor(roomRef, playerId) {
-        this.roomRef      = roomRef;
-        this.playerId     = playerId;
-        this.currentState = null;
-        this.events       = { onStateUpdate: () => {} };
+    constructor(roomRef,playerId){this.roomRef=roomRef;this.playerId=playerId;this.currentState=null;this.events={onStateUpdate:()=>{}};}
+    _buildInitialState(){
+        const deck=freshDeck();
+        return {adminId:this.playerId,gameStarted:false,difficulty:'medium',
+            teams:[{id:'blue',players:{},score:0},{id:'red',players:{},score:0},{id:'purple',players:{},score:0},{id:'green',players:{},score:0},{id:'yellow',players:{},score:0}],
+            currentTeamIndex:0,turnStatus:'transitioning',turnStartTime:null,turnDuration:60,
+            deck,currentCardIndex:deck[0],describerId:null,lastDescriberId:null,resetTimestamp:null};
     }
-
-    _buildInitialState() {
-        const deck = freshDeck();
-        return {
-            adminId:          this.playerId,
-            gameStarted:      false,
-            difficulty:       'medium',
-            teams: [
-                { id:'blue',   players:{}, score:0 },
-                { id:'red',    players:{}, score:0 },
-                { id:'purple', players:{}, score:0 },
-                { id:'green',  players:{}, score:0 },
-                { id:'yellow', players:{}, score:0 }
-            ],
-            currentTeamIndex: 0,
-            turnStatus:       'transitioning',
-            turnStartTime:    null,
-            turnDuration:     60,
-            deck:             deck,
-            currentCardIndex: deck[0],
-            describerId:      null,
-            lastDescriberId:  null,
-            // FIX #10 — no resetTimestamp on fresh room
-            resetTimestamp:   null
-        };
+    async connect(){const init=this._buildInitialState();await runTransaction(this.roomRef,cur=>cur===null?init:cur);}
+    registerPresence(){
+        const pr=ref(db,`rooms/${this.roomRef.key}/players/${myPlayerId}`);
+        set(pr,{joinTime:myJoinTime,active:true}); onDisconnect(pr).remove();
     }
-
-    // FIX #1 — use runTransaction to safely create room only if absent,
-    // preventing race condition when two players enter simultaneously.
-    async connect() {
-        const roomRef = this.roomRef;
-        const initialState = this._buildInitialState();
-
-        await runTransaction(roomRef, (currentData) => {
-            if (currentData === null) {
-                // Room doesn't exist — create it atomically
-                return initialState;
+    listenToState(){
+        onValue(this.roomRef,snap=>{
+            const s=snap.val();
+            if(!s){goToLobby();return;}
+            if(s.resetTimestamp&&myJoinTime&&s.resetTimestamp>myJoinTime){goToLobby();return;}
+            this.currentState=s;
+            if(s.teams)s.teams.forEach(t=>{t.playerCount=t.players?Object.keys(t.players).length:0;});
+            const allPlayers=s.players?Object.keys(s.players):[];
+            if(allPlayers.length===1&&allPlayers[0]===this.playerId){onDisconnect(this.roomRef).remove();}
+            else{onDisconnect(this.roomRef).cancel();const pr=ref(db,`rooms/${this.roomRef.key}/players/${this.playerId}`);onDisconnect(pr).remove();}
+            // Admin transfer
+            const adminPresent=s.adminId&&s.players&&s.players[s.adminId];
+            if(!adminPresent){
+                const sorted=allPlayers.map(id=>({id,joinTime:(s.players[id]||{}).joinTime||0})).sort((a,b)=>a.joinTime-b.joinTime);
+                if(sorted.length>0&&sorted[0].id===this.playerId){update(this.roomRef,{adminId:this.playerId});return;}
             }
-            // Room already exists — leave it untouched
-            return currentData;
-        });
-    }
-
-    registerPresence() {
-        const roomId = this.roomRef.key;
-        const myPresenceRef = ref(db, `rooms/${roomId}/players/${myPlayerId}`);
-        set(myPresenceRef, { joinTime: myJoinTime, active: true });
-        onDisconnect(myPresenceRef).remove();
-    }
-
-    listenToState() {
-        onValue(this.roomRef, (snapshot) => {
-            const newState = snapshot.val();
-
-            // Room deleted
-            if (!newState) { goToLobby(); return; }
-
-            // FIX #10 — only trigger reset if resetTimestamp > myJoinTime AND is non-null
-            if (newState.resetTimestamp && myJoinTime && newState.resetTimestamp > myJoinTime) {
-                goToLobby();
-                return;
-            }
-
-            this.currentState = newState;
-
-            // Compute playerCount per team
-            if (newState.teams) {
-                newState.teams.forEach(t => {
-                    t.playerCount = t.players ? Object.keys(t.players).length : 0;
-                });
-            }
-
-            // Room cleanup: last player removes whole room on disconnect
-            const allPlayers = newState.players ? Object.keys(newState.players) : [];
-            if (allPlayers.length === 1 && allPlayers[0] === this.playerId) {
-                onDisconnect(this.roomRef).remove();
-            } else {
-                onDisconnect(this.roomRef).cancel();
-                // Always keep own presence-remove active
-                const myPresenceRef = ref(db, `rooms/${this.roomRef.key}/players/${this.playerId}`);
-                onDisconnect(myPresenceRef).remove();
-            }
-
-            // Admin transfer: if admin is gone, oldest remaining player takes over
-            const isAdminPresent = newState.adminId &&
-                newState.players && newState.players[newState.adminId];
-
-            if (!isAdminPresent) {
-                const sorted = allPlayers
-                    .map(id => ({ id, joinTime: (newState.players[id] || {}).joinTime || 0 }))
-                    .sort((a, b) => a.joinTime - b.joinTime);
-                if (sorted.length > 0 && sorted[0].id === this.playerId) {
-                    update(this.roomRef, { adminId: this.playerId });
-                    return;
+            // BUG 2 FIX — admin re-entered their own room as sole player with gameStarted:true.
+            // Auto-reset to team selection so no stale modal state bleeds through.
+            if(s.gameStarted&&s.adminId===this.playerId&&allPlayers.length<=1){
+                const noTeams=!s.teams||s.teams.every(t=>t.playerCount===0);
+                if(noTeams){
+                    const r={gameStarted:false,turnStatus:'transitioning',turnStartTime:null,
+                        describerId:null,lastDescriberId:null,currentTeamIndex:0,usedCardIndices:[]};
+                    s.teams.forEach((_,i)=>{r[`teams/${i}/score`]=0;});
+                    update(this.roomRef,r);return;
                 }
             }
-
-            // Skip empty teams during transitioning
-            if (newState.turnStatus === 'transitioning' && newState.teams) {
-                const curTeam = newState.teams[newState.currentTeamIndex];
-                if (curTeam && curTeam.playerCount === 0) {
-                    for (let i = 1; i < newState.teams.length; i++) {
-                        const idx = (newState.currentTeamIndex + i) % newState.teams.length;
-                        if (newState.teams[idx].playerCount > 0) {
-                            update(this.roomRef, { currentTeamIndex: idx });
-                            return;
-                        }
-                    }
+            // Skip empty team
+            if(s.turnStatus==='transitioning'&&s.teams){
+                const cur=s.teams[s.currentTeamIndex];
+                if(cur&&cur.playerCount===0){
+                    for(let i=1;i<s.teams.length;i++){const idx=(s.currentTeamIndex+i)%s.teams.length;if(s.teams[idx].playerCount>0){update(this.roomRef,{currentTeamIndex:idx});return;}}
                 }
             }
-
-            this.events.onStateUpdate(newState);
+            this.events.onStateUpdate(s);
         });
     }
-
-    async startTurn() {
-        await update(this.roomRef, {
-            turnStatus:    'active',
-            turnStartTime: Date.now(),
-            describerId:   this.playerId
-        });
+    async startTurn(){await update(this.roomRef,{turnStatus:'active',turnStartTime:Date.now(),describerId:this.playerId});}
+    async endTurn(){
+        const s=this.currentState; if(!s||s.turnStatus!=='active')return;
+        let next=s.currentTeamIndex;
+        for(let i=1;i<=s.teams.length;i++){const idx=(s.currentTeamIndex+i)%s.teams.length;if(s.teams[idx].players&&Object.keys(s.teams[idx].players).length>0){next=idx;break;}}
+        await update(this.roomRef,{turnStatus:'ended',lastDescriberId:s.describerId});
+        endTurnTimeout=setTimeout(async()=>{endTurnTimeout=null;if(!turnManager)return;await update(this.roomRef,{currentTeamIndex:next,turnStatus:'transitioning',turnStartTime:null,describerId:null});},3000);
     }
-
-    async endTurn() {
-        const state = this.currentState;
-        if (!state || state.turnStatus !== 'active') return;
-
-        // Find next team with players
-        let nextTeamIndex = state.currentTeamIndex;
-        for (let i = 1; i <= state.teams.length; i++) {
-            const idx = (state.currentTeamIndex + i) % state.teams.length;
-            if (state.teams[idx].players && Object.keys(state.teams[idx].players).length > 0) {
-                nextTeamIndex = idx;
-                break;
-            }
+    async drawCard(isCorrect){
+        const s=this.currentState;
+        if(!s||s.turnStatus!=='active'||s.describerId!==this.playerId||isProcessingCard)return;
+        // BUG 3 FIX — block skip on last card
+        if(!isCorrect&&(s.deck||[]).length<=1){
+            uiLastCardError.textContent=i18n[lang].lastCardError;
+            uiLastCardError.classList.remove('hidden');
+            uiLastCardError.style.animation='none'; void uiLastCardError.offsetWidth; uiLastCardError.style.animation='';
+            if(lastCardErrorTimeout)clearTimeout(lastCardErrorTimeout);
+            lastCardErrorTimeout=setTimeout(()=>{uiLastCardError.classList.add('hidden');lastCardErrorTimeout=null;},2500);
+            return;
         }
-
-        await update(this.roomRef, { turnStatus: 'ended', lastDescriberId: state.describerId });
-
-        // FIX #3 — store timeout reference so it can be cancelled on goToLobby
-        endTurnTimeout = setTimeout(async () => {
-            endTurnTimeout = null;
-            // Guard: turnManager might be null if user left during the 3s window
-            if (!turnManager) return;
-            await update(this.roomRef, {
-                currentTeamIndex: nextTeamIndex,
-                turnStatus:       'transitioning',
-                turnStartTime:    null,
-                describerId:      null
-            });
-        }, 3000);
-    }
-
-    async drawCard(isCorrect) {
-        const state = this.currentState;
-        if (!state) return;
-        if (state.turnStatus !== 'active') return;
-        if (state.describerId !== this.playerId) return;
-
-        // FIX #2 — prevent double-tap race condition
-        if (isProcessingCard) return;
-
-        // BUG 3 FIX — block skip when only 1 card left in deck
-        if (!isCorrect) {
-            const deckLen = (state.deck || []).length;
-            if (deckLen <= 1) {
-                const el = document.getElementById('last-card-error');
-                el.textContent = i18n[lang].lastCardError;
-                el.classList.remove('hidden');
-                // re-trigger animation on rapid taps
-                el.style.animation = 'none';
-                void el.offsetWidth;
-                el.style.animation = '';
-                if (lastCardErrorTimeout) clearTimeout(lastCardErrorTimeout);
-                lastCardErrorTimeout = setTimeout(() => {
-                    el.classList.add('hidden');
-                    lastCardErrorTimeout = null;
-                }, 2500);
-                return;
+        isProcessingCard=true;
+        try{
+            let deck=[...(s.deck||[])]; const cur=deck.shift();
+            if(!isCorrect)deck.push(cur);
+            const empty=deck.length===0;
+            if(empty){
+                const used=new Set(s.usedCardIndices||[]); if(isCorrect)used.add(cur);
+                let pool=Array.from({length:DECK_SIZE},(_,i)=>i).filter(i=>!used.has(i));
+                if(!pool.length){pool=Array.from({length:DECK_SIZE},(_,i)=>i);used.clear();}
+                deck=shuffleArray(pool);
             }
-        }
-
-        isProcessingCard = true;
-
-        try {
-            let deck = [...(state.deck || [])];
-            const currentCard = deck.shift();
-
-            if (!isCorrect) {
-                // Skip → return to bottom of deck
-                deck.push(currentCard);
-            }
-            // Correct → card is permanently removed this round
-
-            const isDeckEmpty = (deck.length === 0);
-            if (isDeckEmpty) {
-                // FIX #8 — reshuffle excludes cards already scored this session
-                // We keep track via usedCardIndices on the state
-                const usedSet = new Set(state.usedCardIndices || []);
-                // Add currently discarded card to used set if correct
-                if (isCorrect) usedSet.add(currentCard);
-                // Build fresh pool from cards not yet seen since last full reset
-                let pool = Array.from({ length: DECK_SIZE }, (_, i) => i).filter(i => !usedSet.has(i));
-                if (pool.length === 0) {
-                    // All cards exhausted — full reset
-                    pool = Array.from({ length: DECK_SIZE }, (_, i) => i);
-                    usedSet.clear();
-                }
-                deck = shuffleArray(pool);
-            }
-
-            const updates = {};
-
-            if (isCorrect) {
-                const activeTeam = state.teams[state.currentTeamIndex];
-                updates[`teams/${state.currentTeamIndex}/score`] = (activeTeam.score || 0) + 1;
-                // Track used cards to avoid repeats (FIX #8)
-                const used = [...(state.usedCardIndices || [])];
-                if (!used.includes(currentCard)) used.push(currentCard);
-                updates.usedCardIndices = used;
+            const upd={};
+            if(isCorrect){
+                upd[`teams/${s.currentTeamIndex}/score`]=(s.teams[s.currentTeamIndex].score||0)+1;
+                const used=[...(s.usedCardIndices||[])]; if(!used.includes(cur))used.push(cur); upd.usedCardIndices=used;
             } else {
-                // BUG 5 FIX — skip deducts 1 point, floor at 0
-                const activeTeam = state.teams[state.currentTeamIndex];
-                updates[`teams/${state.currentTeamIndex}/score`] = Math.max(0, (activeTeam.score || 0) - 1);
+                // BUG 5 FIX — deduct 1 point on skip, floor 0
+                upd[`teams/${s.currentTeamIndex}/score`]=Math.max(0,(s.teams[s.currentTeamIndex].score||0)-1);
             }
-
-            if (isDeckEmpty) {
-                const elapsed  = Math.floor((Date.now() - state.turnStartTime) / 1000);
-                const timeLeft = Math.max(0, state.turnDuration - elapsed);
-                updates.turnStatus       = 'shuffling';
-                updates.timeLeft         = timeLeft;
-                updates.deck             = deck;
-                updates.currentCardIndex = deck[0];
-                // Reset used set after full reshuffle
-                if (!updates.usedCardIndices) updates.usedCardIndices = state.usedCardIndices || [];
-            } else {
-                updates.deck             = deck;
-                updates.currentCardIndex = deck[0];
-            }
-
-            await update(this.roomRef, updates);
-        } finally {
-            // FIX #2 — always release the lock, even on Firebase error
-            isProcessingCard = false;
-        }
+            if(empty){
+                upd.turnStatus='shuffling'; upd.timeLeft=Math.max(0,s.turnDuration-Math.floor((Date.now()-s.turnStartTime)/1000));
+                upd.deck=deck; upd.currentCardIndex=deck[0];
+                if(!upd.usedCardIndices)upd.usedCardIndices=s.usedCardIndices||[];
+            } else { upd.deck=deck; upd.currentCardIndex=deck[0]; }
+            await update(this.roomRef,upd);
+        } finally{isProcessingCard=false;}
     }
 }
 
-// ─── enterRoom ────────────────────────────────────────────────────────────────
-window.enterRoom = async function() {
-    const rawName = document.getElementById('room-input').value.trim();
-    const errEl   = document.getElementById('room-input-error');
-
-    if (!rawName) {
-        errEl.textContent = lang === 'he' ? "אנא הכנס שם חדר!" : "Please enter a room name!";
-        errEl.style.display = 'block';
-        return;
-    }
-
-    // FIX #12 — validate forbidden Firebase path characters
-    if (hasInvalidChars(rawName)) {
-        errEl.textContent = i18n[lang].roomInvalidChars;
-        errEl.style.display = 'block';
-        return;
-    }
-    errEl.style.display = 'none';
-
-    const roomId = rawName; // no silent replacement — show error instead
-    uiLobby.style.display = 'none';
-    myJoinTime = Date.now();
-    // BUG 1 FIX — reset difficulty tracking for each fresh room entry
-    adminDifficultyChosen = false;
-    pendingDifficulty     = 'medium';
-
-    const roomRef = ref(db, 'rooms/' + roomId);
-    turnManager   = new GameTurnManager(roomRef, myPlayerId);
-
-    // FIX #1 — atomic create-if-absent via transaction
-    await turnManager.connect();
-
-    // Register presence AFTER room exists
-    turnManager.registerPresence();
-
-    turnManager.events.onStateUpdate = (state) => renderState(state);
-    turnManager.listenToState();
+window.enterRoom=async function(){
+    const raw=document.getElementById('room-input').value.trim();
+    const err=document.getElementById('room-input-error');
+    if(!raw){err.textContent=lang==='he'?"אנא הכנס שם חדר!":"Please enter a room name!";err.style.display='block';return;}
+    if(hasInvalidChars(raw)){err.textContent=i18n[lang].roomInvalidChars;err.style.display='block';return;}
+    err.style.display='none';
+    uiLobby.style.display='none'; myJoinTime=Date.now();
+    adminDifficultyChosen=false; pendingDifficulty='medium';
+    turnManager=new GameTurnManager(ref(db,'rooms/'+raw),myPlayerId);
+    await turnManager.connect(); turnManager.registerPresence();
+    turnManager.events.onStateUpdate=renderState; turnManager.listenToState();
 };
 
-// ─── goToLobby ────────────────────────────────────────────────────────────────
-window.goToLobby = function() {
-    // FIX #3 — cancel pending endTurn timeout
-    if (endTurnTimeout) { clearTimeout(endTurnTimeout); endTurnTimeout = null; }
-
-    if (turnManager) {
-        const roomId = turnManager.roomRef.key;
-        const myPresenceRef = ref(db, `rooms/${roomId}/players/${myPlayerId}`);
-        onDisconnect(myPresenceRef).cancel();
-        remove(myPresenceRef);
-
-        if (myTeamId) {
-            const tIdx = (turnManager.currentState?.teams || []).findIndex(t => t.id === myTeamId);
-            if (tIdx >= 0) {
-                const tRef = ref(db, `rooms/${roomId}/teams/${tIdx}/players/${myPlayerId}`);
-                onDisconnect(tRef).cancel();
-                remove(tRef);
-            }
-        }
-        turnManager.events.onStateUpdate = () => {};
-        turnManager = null;
+window.goToLobby=function(){
+    if(endTurnTimeout){clearTimeout(endTurnTimeout);endTurnTimeout=null;}
+    if(localTimerInterval){clearInterval(localTimerInterval);localTimerInterval=null;}
+    if(window._shufflingTimeout){clearTimeout(window._shufflingTimeout);window._shufflingTimeout=null;}
+    if(lastCardErrorTimeout){clearTimeout(lastCardErrorTimeout);lastCardErrorTimeout=null;}
+    if(turnManager){
+        const rid=turnManager.roomRef.key;
+        const pr=ref(db,`rooms/${rid}/players/${myPlayerId}`); onDisconnect(pr).cancel(); remove(pr);
+        if(myTeamId){const ti=(turnManager.currentState?.teams||[]).findIndex(t=>t.id===myTeamId);if(ti>=0){const tr=ref(db,`rooms/${rid}/teams/${ti}/players/${myPlayerId}`);onDisconnect(tr).cancel();remove(tr);}}
+        turnManager.events.onStateUpdate=()=>{}; turnManager=null;
     }
-
-    myTeamId              = null;
-    myPlayerNumber        = null;
-    isEditMode            = false;
-    lastDisplayedCardIndex = -1;
-    isProcessingCard      = false; // FIX #2 — reset lock on lobby return
-    adminDifficultyChosen = false; // BUG 1 FIX
-    pendingDifficulty     = 'medium'; // BUG 1 FIX
-
-    if (localTimerInterval)       { clearInterval(localTimerInterval);      localTimerInterval      = null; }
-    if (window._shufflingTimeout) { clearTimeout(window._shufflingTimeout); window._shufflingTimeout = null; }
-    if (lastCardErrorTimeout)     { clearTimeout(lastCardErrorTimeout);      lastCardErrorTimeout     = null; }
-
-    uiLobby.style.display = 'flex';
+    myTeamId=null;myPlayerNumber=null;isEditMode=false;lastDisplayedCardIndex=-1;isProcessingCard=false;
+    adminDifficultyChosen=false;pendingDifficulty='medium';
+    uiLobby.style.display='flex';
     uiModal.classList.add('hidden');
     document.getElementById('winner-modal').classList.add('hidden');
     document.getElementById('shuffling-ui').classList.add('hidden');
@@ -905,328 +652,167 @@ window.goToLobby = function() {
     document.getElementById('controls').classList.add('hidden');
     uiRoleMessage.classList.add('hidden');
     uiBtnStartTurn.classList.add('hidden');
-    document.getElementById('last-card-error').classList.add('hidden');
-
+    uiLastCardError.classList.add('hidden');
     updatePlayerInfoDisplay();
-    uiPlayersCount.textContent = i18n[lang].waitingPlayers;
-    uiTimer.textContent        = '01:00';
-    uiStatus.textContent       = i18n[lang].waitingPlayers;
+    uiPlayersCount.textContent=i18n[lang].waitingPlayers;
+    uiTimer.textContent='01:00';
+    uiStatus.textContent=i18n[lang].waitingPlayers;
 };
 
-// ─── selectTeam ───────────────────────────────────────────────────────────────
-window.selectTeam = async function(teamId) {
-    if (!turnManager || !turnManager.currentState) return;
-    if (myTeamId === teamId) return;
-
-    const state  = turnManager.currentState;
-    const roomId = turnManager.roomRef.key;
-
-    // Leave old team
-    for (let i = 0; i < state.teams.length; i++) {
-        if (state.teams[i].players && state.teams[i].players[myPlayerId]) {
-            const oldRef = ref(db, `rooms/${roomId}/teams/${i}/players/${myPlayerId}`);
-            onDisconnect(oldRef).cancel();
-            await remove(oldRef);
-        }
-    }
-
-    // Join new team — FIX #4: use timestamp-based unique number
-    const teamIndex    = state.teams.findIndex(t => t.id === teamId);
-    const teamPlayers  = state.teams[teamIndex].players || {};
-    const existingNums = Object.values(teamPlayers).map(p => p.num || 0);
-    // Use a timestamp-derived number to avoid duplicates across simultaneous joins
-    const pNumber = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
-
-    const playerRef = ref(db, `rooms/${roomId}/teams/${teamIndex}/players/${myPlayerId}`);
-    onDisconnect(playerRef).remove();
-    await set(playerRef, { num: pNumber, active: true, joinTime: Date.now() });
-
-    myTeamId       = teamId;
-    myPlayerNumber = pNumber;
-    updatePlayerInfoDisplay();
-    highlightSelectedTeamBtn();
-    renderState(turnManager.currentState);
+window.selectTeam=async function(teamId){
+    if(!turnManager?.currentState||myTeamId===teamId)return;
+    const s=turnManager.currentState,rid=turnManager.roomRef.key;
+    for(let i=0;i<s.teams.length;i++){if(s.teams[i].players?.[myPlayerId]){const r=ref(db,`rooms/${rid}/teams/${i}/players/${myPlayerId}`);onDisconnect(r).cancel();await remove(r);}}
+    const ti=s.teams.findIndex(t=>t.id===teamId);
+    const nums=Object.values(s.teams[ti].players||{}).map(p=>p.num||0);
+    const pNum=nums.length?Math.max(...nums)+1:1;
+    const pr=ref(db,`rooms/${rid}/teams/${ti}/players/${myPlayerId}`);
+    onDisconnect(pr).remove(); await set(pr,{num:pNum,active:true,joinTime:Date.now()});
+    myTeamId=teamId;myPlayerNumber=pNum;
+    updatePlayerInfoDisplay();highlightSelectedTeamBtn();renderState(turnManager.currentState);
 };
 
-function highlightSelectedTeamBtn() {
-    document.querySelectorAll('#modal-team-buttons .team-btn').forEach(btn => {
-        btn.style.border = '3px solid transparent';
-    });
-    if (myTeamId) {
-        const btn = document.querySelector(`#modal-team-buttons .team-btn.${myTeamId}`);
-        if (btn) btn.style.border = '3px solid #333';
-    }
+function highlightSelectedTeamBtn(){
+    document.querySelectorAll('#modal-team-buttons .team-btn').forEach(b=>b.style.border='3px solid transparent');
+    if(myTeamId){const b=document.querySelector(`#modal-team-buttons .team-btn.${myTeamId}`);if(b)b.style.border='3px solid #333';}
 }
 
-// ─── Difficulty ───────────────────────────────────────────────────────────────
-window.setDifficulty = function(level) {
-    if (!turnManager?.currentState) return;
-    if (turnManager.currentState.adminId !== myPlayerId) return;
-    adminDifficultyChosen = true; // BUG 1 FIX
-    pendingDifficulty = level;
-    updateDifficultyUI(level);
+window.setDifficulty=function(level){
+    if(!turnManager?.currentState||turnManager.currentState.adminId!==myPlayerId)return;
+    adminDifficultyChosen=true;pendingDifficulty=level;updateDifficultyUI(level); // BUG 1 FIX
 };
 
-function updateDifficultyUI(level) {
-    const isAdmin = turnManager?.currentState?.adminId === myPlayerId;
-    document.querySelectorAll('.diff-btn').forEach(btn => {
-        btn.style.backgroundColor = '#f9f9f9';
-        btn.style.borderColor     = '#ddd';
-        btn.style.color           = '#666';
-        btn.style.opacity         = isAdmin ? '1' : '0.6';
-        btn.style.cursor          = isAdmin ? 'pointer' : 'not-allowed';
-    });
-    const map = {
-        easy:   { el:'diff-easy',   bg:'#d5f5e3', border:'#2ecc71', color:'#27ae60' },
-        medium: { el:'diff-medium', bg:'#fcf3cf', border:'#f1c40f', color:'#f39c12' },
-        hard:   { el:'diff-hard',   bg:'#fadbd8', border:'#e74c3c', color:'#c0392b' }
-    };
-    if (map[level]) {
-        const b = document.getElementById(map[level].el);
-        b.style.backgroundColor = map[level].bg;
-        b.style.borderColor     = map[level].border;
-        b.style.color           = map[level].color;
-    }
+function updateDifficultyUI(level){
+    const isAdmin=turnManager?.currentState?.adminId===myPlayerId;
+    document.querySelectorAll('.diff-btn').forEach(b=>{b.style.backgroundColor='#f9f9f9';b.style.borderColor='#ddd';b.style.color='#666';b.style.opacity=isAdmin?'1':'0.6';b.style.cursor=isAdmin?'pointer':'not-allowed';});
+    const map={easy:{el:'diff-easy',bg:'#d5f5e3',border:'#2ecc71',color:'#27ae60'},medium:{el:'diff-medium',bg:'#fcf3cf',border:'#f1c40f',color:'#f39c12'},hard:{el:'diff-hard',bg:'#fadbd8',border:'#e74c3c',color:'#c0392b'}};
+    if(map[level]){const b=document.getElementById(map[level].el);b.style.backgroundColor=map[level].bg;b.style.borderColor=map[level].border;b.style.color=map[level].color;}
 }
 
-// ─── startGame ────────────────────────────────────────────────────────────────
-window.startGame = function() {
-    if (!myTeamId) {
-        alert(lang === 'he' ? "אנא בחר קבוצה קודם!" : "Please select a team first!");
-        return;
-    }
-    // BUG 1 FIX — only write pendingDifficulty if admin explicitly chose; otherwise keep stored value
-    const diffToWrite = adminDifficultyChosen
-        ? pendingDifficulty
-        : (turnManager.currentState.difficulty || 'medium');
-    update(turnManager.roomRef, { gameStarted: true, difficulty: diffToWrite });
+window.startGame=function(){
+    if(!myTeamId){alert(lang==='he'?"אנא בחר קבוצה קודם!":"Please select a team first!");return;}
+    // BUG 1 FIX — use stored difficulty unless admin explicitly changed it
+    const diff=adminDifficultyChosen?pendingDifficulty:(turnManager.currentState.difficulty||'medium');
+    update(turnManager.roomRef,{gameStarted:true,difficulty:diff});
 };
 
-// ─── resumePlay (after shuffling) ────────────────────────────────────────────
-window.resumePlay = async function() {
-    if (!turnManager?.currentState) return;
-    const state = turnManager.currentState;
-
-    // FIX #7 — only the current describer can resume
-    if (state.describerId !== myPlayerId) return;
-
-    await update(turnManager.roomRef, {
-        turnStatus:    'active',
-        turnStartTime: Date.now() - (state.turnDuration - (state.timeLeft || 0)) * 1000,
-        timeLeft:      null
-    });
+window.resumePlay=async function(){
+    if(!turnManager?.currentState)return;
+    const s=turnManager.currentState; if(s.describerId!==myPlayerId)return;
+    await update(turnManager.roomRef,{turnStatus:'active',turnStartTime:Date.now()-((s.turnDuration-(s.timeLeft||0))*1000),timeLeft:null});
 };
 
-// ─── openSettings ────────────────────────────────────────────────────────────
-window.openSettings = function() {
-    if (!turnManager?.currentState) return;
-    isEditMode = true;
-    pendingDifficulty = turnManager.currentState.difficulty;
-    updateDifficultyUI(pendingDifficulty);
-
-    const isAdmin = turnManager.currentState.adminId === myPlayerId;
-
+window.openSettings=function(){
+    if(!turnManager?.currentState)return;
+    isEditMode=true;pendingDifficulty=turnManager.currentState.difficulty;updateDifficultyUI(pendingDifficulty);
+    const isAdmin=turnManager.currentState.adminId===myPlayerId;
     uiModal.classList.remove('hidden');
     document.getElementById('admin-setup-controls').classList.add('hidden');
     document.getElementById('team-selection-group').classList.add('hidden');
     document.getElementById('difficulty-group').classList.remove('hidden');
     document.getElementById('admin-edit-controls').classList.remove('hidden');
     document.getElementById('non-admin-msg').classList.add('hidden');
-
-    if (isAdmin) {
+    if(isAdmin){
         document.getElementById('non-admin-note').classList.add('hidden');
         document.getElementById('btn-change-teams').classList.remove('hidden');
         document.getElementById('btn-end-game').classList.remove('hidden');
         document.getElementById('btn-modal-confirm').classList.remove('hidden');
         document.getElementById('edit-warning').classList.remove('hidden');
-        document.getElementById('btn-modal-cancel').textContent = i18n[lang].cancel;
+        document.getElementById('btn-modal-cancel').textContent=i18n[lang].cancel;
     } else {
         document.getElementById('non-admin-note').classList.remove('hidden');
         document.getElementById('btn-change-teams').classList.add('hidden');
         document.getElementById('btn-end-game').classList.add('hidden');
         document.getElementById('btn-modal-confirm').classList.add('hidden');
         document.getElementById('edit-warning').classList.add('hidden');
-        document.getElementById('btn-modal-cancel').textContent = i18n[lang].close;
+        document.getElementById('btn-modal-cancel').textContent=i18n[lang].close;
     }
 };
 
-window.closeModal = function() {
-    isEditMode = false;
-    uiModal.classList.add('hidden');
-    if (turnManager?.currentState) updateDifficultyUI(turnManager.currentState.difficulty);
+window.closeModal=function(){isEditMode=false;uiModal.classList.add('hidden');if(turnManager?.currentState)updateDifficultyUI(turnManager.currentState.difficulty);};
+
+window.confirmSettings=async function(){
+    if(turnManager.currentState.adminId!==myPlayerId)return;
+    isEditMode=false;uiModal.classList.add('hidden');
+    const deck=freshDeck(),s=turnManager.currentState;
+    let first=0;for(let i=0;i<s.teams.length;i++){if(s.teams[i].playerCount>0){first=i;break;}}
+    const upd={difficulty:pendingDifficulty,deck,currentCardIndex:deck[0],turnStatus:'transitioning',turnStartTime:null,describerId:null,lastDescriberId:null,currentTeamIndex:first,gameStarted:true,usedCardIndices:[]};
+    s.teams.forEach((_,i)=>{upd[`teams/${i}/score`]=0;});
+    await update(turnManager.roomRef,upd);
 };
 
-// ─── confirmSettings ──────────────────────────────────────────────────────────
-window.confirmSettings = async function() {
-    if (turnManager.currentState.adminId !== myPlayerId) return;
-    isEditMode = false;
-    uiModal.classList.add('hidden');
-
-    const deck    = freshDeck();
-    const state   = turnManager.currentState;
-
-    // FIX #6 — find first team index that actually has players
-    let firstTeamIdx = 0;
-    for (let i = 0; i < state.teams.length; i++) {
-        if (state.teams[i].playerCount > 0) { firstTeamIdx = i; break; }
-    }
-
-    const updates = {
-        difficulty:         pendingDifficulty,
-        deck:               deck,
-        currentCardIndex:   deck[0],
-        turnStatus:         'transitioning',
-        turnStartTime:      null,
-        describerId:        null,
-        lastDescriberId:    null,
-        currentTeamIndex:   firstTeamIdx,  // FIX #6
-        gameStarted:        true,
-        usedCardIndices:    []             // FIX #8 reset
-    };
-    state.teams.forEach((_, i) => { updates[`teams/${i}/score`] = 0; });
-    await update(turnManager.roomRef, updates);
+window.restartToTeamSelection=async function(){
+    if(turnManager.currentState.adminId!==myPlayerId)return;
+    isEditMode=false;uiModal.classList.add('hidden');document.getElementById('winner-modal').classList.add('hidden');
+    const s=turnManager.currentState;
+    const upd={gameStarted:false,turnStatus:'transitioning',turnStartTime:null,describerId:null,lastDescriberId:null,currentTeamIndex:0,usedCardIndices:[]};
+    s.teams.forEach((_,i)=>{upd[`teams/${i}/score`]=0;});
+    await update(turnManager.roomRef,upd);
 };
 
-// ─── restartToTeamSelection ───────────────────────────────────────────────────
-window.restartToTeamSelection = async function() {
-    if (turnManager.currentState.adminId !== myPlayerId) return;
-    isEditMode = false;
-    uiModal.classList.add('hidden');
-    document.getElementById('winner-modal').classList.add('hidden');
-
-    const state   = turnManager.currentState;
-    const updates = {
-        gameStarted:      false,
-        turnStatus:       'transitioning',
-        turnStartTime:    null,
-        describerId:      null,
-        lastDescriberId:  null,
-        currentTeamIndex: 0,
-        usedCardIndices:  []  // FIX #8 reset
-    };
-    state.teams.forEach((_, i) => { updates[`teams/${i}/score`] = 0; });
-    await update(turnManager.roomRef, updates);
-};
-
-// ─── endGameAndReset ──────────────────────────────────────────────────────────
-// FIX #10 — after broadcasting resetTimestamp, admin goes to lobby too.
-// When admin re-enters the same room name, connect() via runTransaction will
-// find the old record. We clear resetTimestamp inside the transaction so a
-// returning admin always gets a clean slate.
-window.endGameAndReset = async function() {
-    if (turnManager.currentState.adminId !== myPlayerId) return;
-    // Broadcast reset to all OTHER players
-    await update(turnManager.roomRef, { resetTimestamp: Date.now() });
-    // Admin also leaves — goToLobby cleans up presence
+window.endGameAndReset=async function(){
+    if(turnManager.currentState.adminId!==myPlayerId)return;
+    await update(turnManager.roomRef,{resetTimestamp:Date.now()});
     goToLobby();
 };
 
-// ─── updatePlayerInfoDisplay ─────────────────────────────────────────────────
-function updatePlayerInfoDisplay() {
-    if (myTeamId && myPlayerNumber) {
-        const d       = i18n[lang];
-        const isAdmin = turnManager?.currentState?.adminId === myPlayerId;
-        const crown   = isAdmin
-            ? `<div style="color:#d4af37;font-size:13px;font-weight:900;margin-top:3px;">👑 ${d.roomAdmin}</div>`
-            : '';
-        uiPlayerInfoDisplay.innerHTML =
-            `${d.teamPrefix}${d.teamNames[myTeamId]}${d.teamSuffix} | ${d.playerWord}: ${myPlayerNumber}${crown}`;
-        uiPlayerInfoDisplay.style.backgroundColor = teamBgColors[myTeamId];
-        uiPlayerInfoDisplay.style.color           = teamColors[myTeamId];
-        uiCardContainer.style.backgroundColor     = teamBgColors[myTeamId];
+function updatePlayerInfoDisplay(){
+    if(myTeamId&&myPlayerNumber){
+        const d=i18n[lang],isAdmin=turnManager?.currentState?.adminId===myPlayerId;
+        const crown=isAdmin?`<div style="color:#d4af37;font-size:13px;font-weight:900;margin-top:3px;">👑 ${d.roomAdmin}</div>`:'';
+        uiPlayerInfoDisplay.innerHTML=`${d.teamPrefix}${d.teamNames[myTeamId]}${d.teamSuffix} | ${d.playerWord}: ${myPlayerNumber}${crown}`;
+        uiPlayerInfoDisplay.style.backgroundColor=teamBgColors[myTeamId];
+        uiPlayerInfoDisplay.style.color=teamColors[myTeamId];
+        uiCardContainer.style.backgroundColor=teamBgColors[myTeamId];
     } else {
-        uiPlayerInfoDisplay.innerHTML             = '';
-        uiPlayerInfoDisplay.style.backgroundColor = 'transparent';
-        uiCardContainer.style.backgroundColor     = 'white';
+        uiPlayerInfoDisplay.innerHTML='';uiPlayerInfoDisplay.style.backgroundColor='transparent';uiCardContainer.style.backgroundColor='white';
     }
 }
 
-// ─── Board colors ─────────────────────────────────────────────────────────────
-function updateBoardColors(teams) {
-    for (let i = 0; i <= MAX_STEPS; i++) {
-        const sq = document.getElementById('sq-' + i);
-        if (sq) sq.style.background = '';
-    }
-    const map = {};
-    teams.forEach(team => {
-        if (team.playerCount > 0) {
-            const pos = Math.min(team.score || 0, MAX_STEPS);
-            if (!map[pos]) map[pos] = [];
-            map[pos].push(teamBgColors[team.id]);
-        }
-    });
-    for (const pos in map) {
-        const sq = document.getElementById('sq-' + pos);
-        if (!sq) continue;
-        const colors = map[pos];
-        if (colors.length === 1) {
-            sq.style.background = colors[0];
-        } else {
-            const dir      = lang === 'he' ? 'to right' : 'to left';
-            const step     = 100 / colors.length;
-            const gradient = `linear-gradient(${dir}, ${colors.map((c, i) =>
-                `${c} ${i*step}%, ${c} ${(i+1)*step}%`).join(', ')})`;
-            sq.style.background = gradient;
-        }
+function updateBoardColors(teams){
+    for(let i=0;i<=MAX_STEPS;i++){const sq=document.getElementById('sq-'+i);if(sq)sq.style.background='';}
+    const map={};
+    teams.forEach(t=>{if(t.playerCount>0){const p=Math.min(t.score||0,MAX_STEPS);if(!map[p])map[p]=[];map[p].push(teamBgColors[t.id]);}});
+    for(const pos in map){
+        const sq=document.getElementById('sq-'+pos);if(!sq)continue;const c=map[pos];
+        if(c.length===1){sq.style.background=c[0];}
+        else{const dir=lang==='he'?'to right':'to left',step=100/c.length;sq.style.background=`linear-gradient(${dir},${c.map((x,i)=>`${x} ${i*step}%,${x} ${(i+1)*step}%`).join(',')})`;}
     }
 }
 
-// ─── Card loader ──────────────────────────────────────────────────────────────
 let fadeTimeout;
-function loadCardIfNeeded(index, difficultyLevel) {
-    if (index === lastDisplayedCardIndex) return;
-    lastDisplayedCardIndex = index;
-
-    // FIX #11 — safe card lookup with bounds check
-    const cards = i18n[lang].cards;
-    const card  = (index >= 0 && index < cards.length) ? cards[index] : null;
-    if (!card) return;
-
-    uiCardContainer.classList.add('fade-out');
-    clearTimeout(fadeTimeout);
-    fadeTimeout = setTimeout(() => {
-        document.getElementById('main-word').textContent = card.word;
-        document.getElementById('card-icon').textContent = card.icon || '🖼️';
-
-        let limit = 4;
-        if (difficultyLevel === 'easy') limit = 2;
-        if (difficultyLevel === 'hard') limit = 6;
-
-        const ul = document.getElementById('taboo-words');
-        ul.innerHTML = '';
-        card.taboo.slice(0, limit).forEach(w => {
-            const li = document.createElement('li');
-            li.textContent = w;
-            ul.appendChild(li);
-        });
+function loadCardIfNeeded(index,diff){
+    if(index===lastDisplayedCardIndex)return; lastDisplayedCardIndex=index;
+    const cards=i18n[lang].cards,card=(index>=0&&index<cards.length)?cards[index]:null; if(!card)return;
+    uiCardContainer.classList.add('fade-out'); clearTimeout(fadeTimeout);
+    fadeTimeout=setTimeout(()=>{
+        document.getElementById('main-word').textContent=card.word;
+        document.getElementById('card-icon').textContent=card.icon||'🖼️';
+        let lim=4;if(diff==='easy')lim=2;if(diff==='hard')lim=6;
+        const ul=document.getElementById('taboo-words');ul.innerHTML='';
+        card.taboo.slice(0,lim).forEach(w=>{const li=document.createElement('li');li.textContent=w;ul.appendChild(li);});
         uiCardContainer.classList.remove('fade-out');
-    }, 300);
+    },300);
 }
 
-// ─── Main render ──────────────────────────────────────────────────────────────
-function renderState(state) {
-    const d       = i18n[lang];
-    const isAdmin = state.adminId === myPlayerId;
+function renderState(state){
+    const d=i18n[lang],isAdmin=state.adminId===myPlayerId;
+    updatePlayerInfoDisplay(); highlightSelectedTeamBtn();
 
-    updatePlayerInfoDisplay();
-    highlightSelectedTeamBtn();
-
-    // ── Modal logic ──────────────────────────────────────────────────────────
-    if (!isEditMode) {
-        if (!state.gameStarted) {
+    // ── Modal ────────────────────────────────────────────────────────────────
+    if(!isEditMode){
+        if(!state.gameStarted){
             uiModal.classList.remove('hidden');
+            document.getElementById('winner-modal').classList.add('hidden');
             document.getElementById('team-selection-group').classList.remove('hidden');
-            if (isAdmin) {
+            if(isAdmin){
                 document.getElementById('difficulty-group').classList.remove('hidden');
                 document.getElementById('admin-setup-controls').classList.remove('hidden');
                 document.getElementById('admin-edit-controls').classList.add('hidden');
                 document.getElementById('non-admin-msg').classList.add('hidden');
                 document.getElementById('non-admin-note').classList.add('hidden');
-                // BUG 1 FIX — only read difficulty from Firebase if admin hasn't chosen manually yet
-                if (!adminDifficultyChosen) {
-                    pendingDifficulty = state.difficulty || 'medium';
-                    updateDifficultyUI(pendingDifficulty);
-                }
+                // BUG 1 FIX — only load from Firebase if admin hasn't manually picked yet
+                if(!adminDifficultyChosen){pendingDifficulty=state.difficulty||'medium';updateDifficultyUI(pendingDifficulty);}
             } else {
                 document.getElementById('difficulty-group').classList.add('hidden');
                 document.getElementById('admin-setup-controls').classList.add('hidden');
@@ -1234,10 +820,8 @@ function renderState(state) {
                 document.getElementById('non-admin-msg').classList.remove('hidden');
                 document.getElementById('non-admin-note').classList.add('hidden');
             }
-        } else if (!myTeamId) {
-            // BUG 2 FIX — game started but this player has no team yet.
-            // Show team selection for everyone (including admin re-entering their own room).
-            // Never show the "waiting for admin" message in this branch.
+        } else if(!myTeamId){
+            // Game active but player hasn't picked a team — show only team picker, no other modal content
             uiModal.classList.remove('hidden');
             document.getElementById('team-selection-group').classList.remove('hidden');
             document.getElementById('difficulty-group').classList.add('hidden');
@@ -1250,174 +834,111 @@ function renderState(state) {
         }
     }
 
-    document.getElementById('btn-settings').classList.toggle('hidden', !state.gameStarted);
+    document.getElementById('btn-settings').classList.toggle('hidden',!state.gameStarted);
     updateBoardColors(state.teams);
+    const pt=state.teams.filter(t=>t.playerCount>0).map(t=>`${d.teamNames[t.id]}: ${t.playerCount}`);
+    uiPlayersCount.textContent=pt.length?`${d.playersConnected} - ${pt.join(' | ')}`:d.waitingChoose;
 
-    const playersText = state.teams
-        .filter(t => t.playerCount > 0)
-        .map(t => `${d.teamNames[t.id]}: ${t.playerCount}`);
-    uiPlayersCount.textContent = playersText.length > 0
-        ? `${d.playersConnected} - ${playersText.join(' | ')}`
-        : d.waitingChoose;
-
-    // ── FIX #5 — Winner check: only teams with active players ────────────────
-    const winnerTeam = state.teams.find(t => (t.score || 0) >= MAX_STEPS && t.playerCount > 0);
-    if (winnerTeam) {
-        if (localTimerInterval) { clearInterval(localTimerInterval); localTimerInterval = null; }
-        uiCardContainer.classList.add('hidden');
-        document.getElementById('controls').classList.add('hidden');
-        uiRoleMessage.classList.add('hidden');
-        uiBtnStartTurn.classList.add('hidden');
-        document.getElementById('shuffling-ui').classList.add('hidden');
-
+    // Winner
+    const winner=state.teams.find(t=>(t.score||0)>=MAX_STEPS&&t.playerCount>0);
+    if(winner){
+        if(localTimerInterval){clearInterval(localTimerInterval);localTimerInterval=null;}
+        uiCardContainer.classList.add('hidden');document.getElementById('controls').classList.add('hidden');
+        uiRoleMessage.classList.add('hidden');uiBtnStartTurn.classList.add('hidden');document.getElementById('shuffling-ui').classList.add('hidden');
         document.getElementById('winner-modal').classList.remove('hidden');
-        const wt = document.getElementById('winner-title');
-        wt.textContent = `${d.winnerPrefix}${d.teamNames[winnerTeam.id]}${d.winnerSuffix}`;
-        wt.style.color = teamColors[winnerTeam.id];
-        document.getElementById('winner-admin-controls').classList.toggle('hidden', !isAdmin);
-        document.getElementById('winner-non-admin-msg').classList.toggle('hidden',  isAdmin);
+        const wt=document.getElementById('winner-title');
+        wt.textContent=`${d.winnerPrefix}${d.teamNames[winner.id]}${d.winnerSuffix}`;wt.style.color=teamColors[winner.id];
+        document.getElementById('winner-admin-controls').classList.toggle('hidden',!isAdmin);
+        document.getElementById('winner-non-admin-msg').classList.toggle('hidden',isAdmin);
         return;
-    } else {
-        document.getElementById('winner-modal').classList.add('hidden');
-    }
+    } else {document.getElementById('winner-modal').classList.add('hidden');}
 
-    if (!state.gameStarted || !myTeamId) return;
+    if(!state.gameStarted||!myTeamId)return;
+    const ct=state.teams[state.currentTeamIndex]; if(!ct)return;
 
-    const currentTeam = state.teams[state.currentTeamIndex];
-    if (!currentTeam) return;
-
-    // ── Shuffling ────────────────────────────────────────────────────────────
-    if (state.turnStatus === 'shuffling') {
-        if (localTimerInterval) { clearInterval(localTimerInterval); localTimerInterval = null; }
-        uiTimer.textContent = formatTime(state.timeLeft || 0);
-        uiCardContainer.classList.add('hidden');
-        document.getElementById('controls').classList.add('hidden');
-        uiRoleMessage.classList.add('hidden');
-        uiBtnStartTurn.classList.add('hidden');
+    // Shuffling
+    if(state.turnStatus==='shuffling'){
+        if(localTimerInterval){clearInterval(localTimerInterval);localTimerInterval=null;}
+        uiTimer.textContent=formatTime(state.timeLeft||0);
+        uiCardContainer.classList.add('hidden');document.getElementById('controls').classList.add('hidden');
+        uiRoleMessage.classList.add('hidden');uiBtnStartTurn.classList.add('hidden');
         document.getElementById('shuffling-ui').classList.remove('hidden');
-
-        // FIX #7 — only the active describer controls the shuffle resume
-        const isDescriber = state.describerId === myPlayerId;
+        const isDesc=state.describerId===myPlayerId;
         document.getElementById('shuffling-loader').classList.remove('hidden');
         document.getElementById('btn-resume-play').classList.add('hidden');
-
-        if (isDescriber && !window._shufflingTimeout) {
-            window._shufflingTimeout = setTimeout(() => {
-                window._shufflingTimeout = null;
-                // FIX #7 — verify this player is still the describer before showing button
-                if (turnManager?.currentState?.describerId === myPlayerId &&
-                    turnManager?.currentState?.turnStatus === 'shuffling') {
+        if(isDesc&&!window._shufflingTimeout){
+            window._shufflingTimeout=setTimeout(()=>{
+                window._shufflingTimeout=null;
+                if(turnManager?.currentState?.describerId===myPlayerId&&turnManager?.currentState?.turnStatus==='shuffling'){
                     document.getElementById('shuffling-loader').classList.add('hidden');
                     document.getElementById('btn-resume-play').classList.remove('hidden');
                 }
-            }, 5000);
+            },5000);
         }
         return;
     } else {
         document.getElementById('shuffling-ui').classList.add('hidden');
-        if (window._shufflingTimeout) { clearTimeout(window._shufflingTimeout); window._shufflingTimeout = null; }
+        if(window._shufflingTimeout){clearTimeout(window._shufflingTimeout);window._shufflingTimeout=null;}
     }
 
-    // ── Timer ────────────────────────────────────────────────────────────────
-    if (state.turnStatus === 'active') {
-        if (!localTimerInterval) {
-            localTimerInterval = setInterval(() => {
-                const cur = turnManager?.currentState;
-                if (!cur || cur.turnStatus !== 'active') {
-                    clearInterval(localTimerInterval); localTimerInterval = null; return;
-                }
-                const elapsed  = Math.floor((Date.now() - cur.turnStartTime) / 1000);
-                const timeLeft = Math.max(0, cur.turnDuration - elapsed);
-                uiTimer.textContent = formatTime(timeLeft);
-                if (timeLeft <= 0 && cur.describerId === myPlayerId) {
-                    turnManager.endTurn();
-                }
-            }, 250);
+    // Timer
+    if(state.turnStatus==='active'){
+        if(!localTimerInterval){
+            localTimerInterval=setInterval(()=>{
+                const c=turnManager?.currentState;
+                if(!c||c.turnStatus!=='active'){clearInterval(localTimerInterval);localTimerInterval=null;return;}
+                const tl=Math.max(0,c.turnDuration-Math.floor((Date.now()-c.turnStartTime)/1000));
+                uiTimer.textContent=formatTime(tl);
+                if(tl<=0&&c.describerId===myPlayerId)turnManager.endTurn();
+            },250);
         }
-    } else {
-        if (localTimerInterval) { clearInterval(localTimerInterval); localTimerInterval = null; }
-        uiTimer.textContent = formatTime(state.turnDuration);
-    }
+    } else {if(localTimerInterval){clearInterval(localTimerInterval);localTimerInterval=null;}uiTimer.textContent=formatTime(state.turnDuration);}
 
-    // ── Active turn ──────────────────────────────────────────────────────────
-    if (state.turnStatus === 'active') {
+    // Active turn
+    if(state.turnStatus==='active'){
         uiBtnStartTurn.classList.add('hidden');
-        uiStatus.style.fontSize = '16px';
-        uiStatus.textContent    = `${d.playingNow}${d.teamNames[currentTeam.id]}${d.teamSuffix}!`;
-        uiStatus.style.color    = teamColors[currentTeam.id];
-
-        if (myTeamId !== currentTeam.id) {
-            // BUG 4 FIX — only show inspector card view when active team has 2+ players.
-            // With a solo-player team there's nothing to "inspect" — just show whose turn it is.
-            if (currentTeam.playerCount >= 2) {
-                uiRoleMessage.classList.add('hidden');
-                uiCardContainer.classList.remove('hidden');
+        uiStatus.style.fontSize='16px';uiStatus.textContent=`${d.playingNow}${d.teamNames[ct.id]}${d.teamSuffix}!`;uiStatus.style.color=teamColors[ct.id];
+        if(myTeamId!==ct.id){
+            // BUG 4 FIX — inspector card only when active team has 2+ players
+            if(ct.playerCount>=2){
+                uiRoleMessage.classList.add('hidden');uiCardContainer.classList.remove('hidden');
                 document.getElementById('controls').classList.add('hidden');
-                uiCardRoleTitle.textContent = d.roleInspector;
-                loadCardIfNeeded(state.currentCardIndex, state.difficulty);
+                uiCardRoleTitle.textContent=d.roleInspector;loadCardIfNeeded(state.currentCardIndex,state.difficulty);
             } else {
-                uiCardContainer.classList.add('hidden');
-                document.getElementById('controls').classList.add('hidden');
-                uiRoleMessage.classList.remove('hidden');
-                uiRoleMessage.textContent = `${d.turnOf}${d.teamNames[currentTeam.id]}${d.teamSuffix}!`;
+                uiCardContainer.classList.add('hidden');document.getElementById('controls').classList.add('hidden');
+                uiRoleMessage.classList.remove('hidden');uiRoleMessage.textContent=`${d.turnOf}${d.teamNames[ct.id]}${d.teamSuffix}!`;
             }
-        } else if (state.describerId === myPlayerId) {
-            uiRoleMessage.classList.add('hidden');
-            uiCardContainer.classList.remove('hidden');
+        } else if(state.describerId===myPlayerId){
+            uiRoleMessage.classList.add('hidden');uiCardContainer.classList.remove('hidden');
             document.getElementById('controls').classList.remove('hidden');
-            uiCardRoleTitle.textContent = d.roleDescriber;
-            loadCardIfNeeded(state.currentCardIndex, state.difficulty);
+            uiCardRoleTitle.textContent=d.roleDescriber;loadCardIfNeeded(state.currentCardIndex,state.difficulty);
         } else {
-            uiCardContainer.classList.add('hidden');
-            document.getElementById('controls').classList.add('hidden');
-            uiRoleMessage.classList.remove('hidden');
-            uiRoleMessage.textContent = d.roleGuesser;
+            uiCardContainer.classList.add('hidden');document.getElementById('controls').classList.add('hidden');
+            uiRoleMessage.classList.remove('hidden');uiRoleMessage.textContent=d.roleGuesser;
         }
         return;
     }
 
-    // ── Between turns ────────────────────────────────────────────────────────
-    uiCardContainer.classList.add('hidden');
-    document.getElementById('controls').classList.add('hidden');
-    uiRoleMessage.classList.add('hidden');
-    lastDisplayedCardIndex = -1;
-
-    if (state.turnStatus === 'ended') {
-        uiStatus.textContent    = d.timeUp;
-        uiStatus.style.fontSize = '18px';
-        uiStatus.style.color    = '#e74c3c';
-        uiBtnStartTurn.classList.add('hidden');
+    // Between turns
+    uiCardContainer.classList.add('hidden');document.getElementById('controls').classList.add('hidden');
+    uiRoleMessage.classList.add('hidden');lastDisplayedCardIndex=-1;
+    if(state.turnStatus==='ended'){
+        uiStatus.textContent=d.timeUp;uiStatus.style.fontSize='18px';uiStatus.style.color='#e74c3c';uiBtnStartTurn.classList.add('hidden');
     } else {
-        // transitioning
-        uiStatus.style.fontSize = '20px';
-        uiStatus.style.color    = teamColors[currentTeam.id] || '#333';
-        uiStatus.textContent    = `${d.turnOf}${d.teamNames[currentTeam.id]}${d.teamSuffix}!`;
-
-        if (myTeamId === currentTeam.id) {
-            const canStart = !(currentTeam.playerCount > 1 && state.lastDescriberId === myPlayerId);
-            if (canStart) {
-                uiBtnStartTurn.classList.remove('hidden');
-            } else {
-                uiBtnStartTurn.classList.add('hidden');
-                uiStatus.textContent = d.waitTeammate;
-            }
-        } else {
-            uiBtnStartTurn.classList.add('hidden');
-        }
+        uiStatus.style.fontSize='20px';uiStatus.style.color=teamColors[ct.id]||'#333';
+        uiStatus.textContent=`${d.turnOf}${d.teamNames[ct.id]}${d.teamSuffix}!`;
+        if(myTeamId===ct.id){
+            const canStart=!(ct.playerCount>1&&state.lastDescriberId===myPlayerId);
+            if(canStart){uiBtnStartTurn.classList.remove('hidden');}else{uiBtnStartTurn.classList.add('hidden');uiStatus.textContent=d.waitTeammate;}
+        } else {uiBtnStartTurn.classList.add('hidden');}
     }
 }
 
-// ─── Button wiring ────────────────────────────────────────────────────────────
-uiBtnStartTurn.addEventListener('click', () => { if (turnManager) turnManager.startTurn(); });
-document.getElementById('btn-correct').addEventListener('click', () => { if (turnManager) turnManager.drawCard(true); });
-document.getElementById('btn-skip').addEventListener('click',    () => { if (turnManager) turnManager.drawCard(false); });
+uiBtnStartTurn.addEventListener('click',()=>{if(turnManager)turnManager.startTurn();});
+document.getElementById('btn-correct').addEventListener('click',()=>{if(turnManager)turnManager.drawCard(true);});
+document.getElementById('btn-skip').addEventListener('click',()=>{if(turnManager)turnManager.drawCard(false);});
+document.getElementById('room-input').addEventListener('keydown',e=>{if(e.key==='Enter')enterRoom();});
 
-// Allow Enter key in room input
-document.getElementById('room-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') enterRoom();
-});
-
-// ─── Init ─────────────────────────────────────────────────────────────────────
 updateStaticText();
 </script>
 
