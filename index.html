@@ -87,6 +87,7 @@
     #shared-board {
         background-color: #f4f1ea; padding: 15px 10px; text-align: center;
         border-bottom: 3px solid #e0dcd3; box-shadow: 0 4px 10px rgba(0,0,0,0.05); z-index: 10;
+        display: none;
     }
     .game-title {
         font-size: 26px; font-weight: 900; color: #f39c12; letter-spacing: 1px;
@@ -110,7 +111,7 @@
 
     #personal-area {
         padding: 20px 10px 40px 10px; flex: 1;
-        display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+        display: none; flex-direction: column; align-items: center; justify-content: flex-start;
     }
     .card {
         background-color: white; color: #333; width: 90%; max-width: 350px; border-radius: 20px;
@@ -624,7 +625,10 @@ window.enterRoom=async function(){
     if(!raw){err.textContent=lang==='he'?"אנא הכנס שם חדר!":"Please enter a room name!";err.style.display='block';return;}
     if(hasInvalidChars(raw)){err.textContent=i18n[lang].roomInvalidChars;err.style.display='block';return;}
     err.style.display='none';
-    uiLobby.style.display='none'; myJoinTime=Date.now();
+    uiLobby.style.display='none';
+    document.getElementById('shared-board').style.display='block';
+    document.getElementById('personal-area').style.display='flex';
+    myJoinTime=Date.now();
     adminDifficultyChosen=false; pendingDifficulty='medium';
     turnManager=new GameTurnManager(ref(db,'rooms/'+raw),myPlayerId);
     await turnManager.connect(); turnManager.registerPresence();
@@ -645,6 +649,8 @@ window.goToLobby=function(){
     myTeamId=null;myPlayerNumber=null;isEditMode=false;lastDisplayedCardIndex=-1;isProcessingCard=false;
     adminDifficultyChosen=false;pendingDifficulty='medium';
     uiLobby.style.display='flex';
+    document.getElementById('shared-board').style.display='none';
+    document.getElementById('personal-area').style.display='none';
     uiModal.classList.add('hidden');
     document.getElementById('winner-modal').classList.add('hidden');
     document.getElementById('shuffling-ui').classList.add('hidden');
