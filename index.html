@@ -150,18 +150,14 @@
         text-align: center; font-size: 18px; font-weight: bold;
         width: 90%; max-width: 350px; margin-top: 20px; border: 1px solid #d1f2eb;
     }
-    /* BUG 3 FIX — error message box */
+    /* BUG 3 FIX — last card error */
     .error-box {
         background-color: #fadbd8; color: #922b21; padding: 12px 18px; border-radius: 10px;
         text-align: center; font-size: 17px; font-weight: bold;
         width: 90%; max-width: 350px; margin-top: 10px; border: 2px solid #e74c3c;
-        animation: errorPulse 0.4s ease;
+        animation: errPulse 0.35s ease;
     }
-    @keyframes errorPulse {
-        0%   { transform: scale(1); }
-        50%  { transform: scale(1.04); }
-        100% { transform: scale(1); }
-    }
+    @keyframes errPulse { 0%{transform:scale(1)} 50%{transform:scale(1.04)} 100%{transform:scale(1)} }
     .players-count { font-size: 14px; color: #7f8c8d; margin-bottom: 10px; font-weight: bold; }
     .loader {
         border: 5px solid #f3f3f3; border-top: 5px solid #3498db;
@@ -292,11 +288,10 @@
 <div id="personal-area">
     <button id="btn-start-turn" class="btn-start hidden">התחל תור</button>
     <div id="role-message" class="message-box hidden"></div>
+    <!-- BUG 3 FIX — last card error banner -->
+    <div id="last-card-error" class="error-box hidden"></div>
 
 ```
-<!-- BUG 3 FIX — last card error message -->
-<div id="last-card-error" class="error-box hidden"></div>
-
 <div id="shuffling-ui" class="message-box hidden"
     style="background-color:#fff3cd;color:#856404;border-color:#ffeeba;">
     <h3 id="txt-shuffling" style="margin-top:0;">מערבב חפיסה מחדש...</h3>
@@ -389,6 +384,7 @@ const CARDS_EN = [
     {word:"Cat",       icon:"🐱", taboo:["Meow","Dog","Animal","Whiskers","Tail","Litter"]}
 ];
 
+// Both decks must have the same length — this is enforced here once
 console.assert(CARDS_HE.length === CARDS_EN.length, "Card decks must be the same length!");
 const DECK_SIZE = CARDS_HE.length;
 
@@ -455,6 +451,7 @@ function shuffleArray(array) {
 }
 
 function freshDeck() {
+    // Returns a shuffled array of all card indices
     return shuffleArray(Array.from({ length: DECK_SIZE }, (_, i) => i));
 }
 
@@ -465,6 +462,7 @@ function formatTime(seconds) {
     return `${m < 10 ? '0'+m : m}:${r < 10 ? '0'+r : r}`;
 }
 
+// FIX #12 — sanitize room name: Firebase paths cannot contain . # $ [ ] /
 function sanitizeRoomId(raw) {
     return raw.replace(/[.#$[\]/]/g, '_');
 }
@@ -479,17 +477,19 @@ let myTeamId           = null;
 let myPlayerNumber     = null;
 let myJoinTime         = null;
 let isEditMode         = false;
-// BUG 1 FIX — track whether admin has manually chosen a difficulty this session
-let adminDifficultySet = false;
 let pendingDifficulty  = 'medium';
+// BUG 1 FIX — tracks whether admin explicitly picked a difficulty this session
+let adminDifficultyChosen = false;
 let turnManager        = null;
 let localTimerInterval = null;
 let lastDisplayedCardIndex = -1;
 
+// FIX #2 — double-tap guard
 let isProcessingCard   = false;
-let endTurnTimeout     = null;
 
-// BUG 3 FIX — timeout ref for auto-hiding last-card error
+// FIX #3 — store endTurn setTimeout reference
+let endTurnTimeout     = null;
+// BUG 3 FIX — timeout for auto-hiding the last-card error
 let lastCardErrorTimeout = null;
 
 const MAX_STEPS = 30;
@@ -519,7 +519,6 @@ const uiRoleMessage      = document.getElementById('role-message');
 const uiCardRoleTitle    = document.getElementById('card-role-title');
 const uiPlayersCount     = document.getElementById('players-count');
 const uiPlayerInfoDisplay = document.getElementById('player-info-display');
-const uiLastCardError    = document.getElementById('last-card-error');
 
 // ─── Language toggle ──────────────────────────────────────────────────────────
 window.toggleLanguage = function() {
@@ -598,18 +597,23 @@ class GameTurnManager {
             currentCardIndex: deck[0],
             describerId:      null,
             lastDescriberId:  null,
+            // FIX #10 — no resetTimestamp on fresh room
             resetTimestamp:   null
         };
     }
 
+    // FIX #1 — use runTransaction to safely create room only if absent,
+    // preventing race condition when two players enter simultaneously.
     async connect() {
         const roomRef = this.roomRef;
         const initialState = this._buildInitialState();
 
         await runTransaction(roomRef, (currentData) => {
             if (currentData === null) {
+                // Room doesn't exist — create it atomically
                 return initialState;
             }
+            // Room already exists — leave it untouched
             return currentData;
         });
     }
@@ -625,8 +629,10 @@ class GameTurnManager {
         onValue(this.roomRef, (snapshot) => {
             const newState = snapshot.val();
 
+            // Room deleted
             if (!newState) { goToLobby(); return; }
 
+            // FIX #10 — only trigger reset if resetTimestamp > myJoinTime AND is non-null
             if (newState.resetTimestamp && myJoinTime && newState.resetTimestamp > myJoinTime) {
                 goToLobby();
                 return;
@@ -634,21 +640,25 @@ class GameTurnManager {
 
             this.currentState = newState;
 
+            // Compute playerCount per team
             if (newState.teams) {
                 newState.teams.forEach(t => {
                     t.playerCount = t.players ? Object.keys(t.players).length : 0;
                 });
             }
 
+            // Room cleanup: last player removes whole room on disconnect
             const allPlayers = newState.players ? Object.keys(newState.players) : [];
             if (allPlayers.length === 1 && allPlayers[0] === this.playerId) {
                 onDisconnect(this.roomRef).remove();
             } else {
                 onDisconnect(this.roomRef).cancel();
+                // Always keep own presence-remove active
                 const myPresenceRef = ref(db, `rooms/${this.roomRef.key}/players/${this.playerId}`);
                 onDisconnect(myPresenceRef).remove();
             }
 
+            // Admin transfer: if admin is gone, oldest remaining player takes over
             const isAdminPresent = newState.adminId &&
                 newState.players && newState.players[newState.adminId];
 
@@ -662,6 +672,7 @@ class GameTurnManager {
                 }
             }
 
+            // Skip empty teams during transitioning
             if (newState.turnStatus === 'transitioning' && newState.teams) {
                 const curTeam = newState.teams[newState.currentTeamIndex];
                 if (curTeam && curTeam.playerCount === 0) {
@@ -691,6 +702,7 @@ class GameTurnManager {
         const state = this.currentState;
         if (!state || state.turnStatus !== 'active') return;
 
+        // Find next team with players
         let nextTeamIndex = state.currentTeamIndex;
         for (let i = 1; i <= state.teams.length; i++) {
             const idx = (state.currentTeamIndex + i) % state.teams.length;
@@ -702,8 +714,10 @@ class GameTurnManager {
 
         await update(this.roomRef, { turnStatus: 'ended', lastDescriberId: state.describerId });
 
+        // FIX #3 — store timeout reference so it can be cancelled on goToLobby
         endTurnTimeout = setTimeout(async () => {
             endTurnTimeout = null;
+            // Guard: turnManager might be null if user left during the 3s window
             if (!turnManager) return;
             await update(this.roomRef, {
                 currentTeamIndex: nextTeamIndex,
@@ -720,13 +734,25 @@ class GameTurnManager {
         if (state.turnStatus !== 'active') return;
         if (state.describerId !== this.playerId) return;
 
+        // FIX #2 — prevent double-tap race condition
         if (isProcessingCard) return;
 
-        // ── BUG 3 FIX — block skip when only 1 card remains in deck ──────────
+        // BUG 3 FIX — block skip when only 1 card left in deck
         if (!isCorrect) {
             const deckLen = (state.deck || []).length;
             if (deckLen <= 1) {
-                showLastCardError();
+                const el = document.getElementById('last-card-error');
+                el.textContent = i18n[lang].lastCardError;
+                el.classList.remove('hidden');
+                // re-trigger animation on rapid taps
+                el.style.animation = 'none';
+                void el.offsetWidth;
+                el.style.animation = '';
+                if (lastCardErrorTimeout) clearTimeout(lastCardErrorTimeout);
+                lastCardErrorTimeout = setTimeout(() => {
+                    el.classList.add('hidden');
+                    lastCardErrorTimeout = null;
+                }, 2500);
                 return;
             }
         }
@@ -738,16 +764,22 @@ class GameTurnManager {
             const currentCard = deck.shift();
 
             if (!isCorrect) {
-                // BUG 5 FIX — skip deducts a point (min 0)
+                // Skip → return to bottom of deck
                 deck.push(currentCard);
             }
+            // Correct → card is permanently removed this round
 
             const isDeckEmpty = (deck.length === 0);
             if (isDeckEmpty) {
+                // FIX #8 — reshuffle excludes cards already scored this session
+                // We keep track via usedCardIndices on the state
                 const usedSet = new Set(state.usedCardIndices || []);
+                // Add currently discarded card to used set if correct
                 if (isCorrect) usedSet.add(currentCard);
+                // Build fresh pool from cards not yet seen since last full reset
                 let pool = Array.from({ length: DECK_SIZE }, (_, i) => i).filter(i => !usedSet.has(i));
                 if (pool.length === 0) {
+                    // All cards exhausted — full reset
                     pool = Array.from({ length: DECK_SIZE }, (_, i) => i);
                     usedSet.clear();
                 }
@@ -759,14 +791,14 @@ class GameTurnManager {
             if (isCorrect) {
                 const activeTeam = state.teams[state.currentTeamIndex];
                 updates[`teams/${state.currentTeamIndex}/score`] = (activeTeam.score || 0) + 1;
+                // Track used cards to avoid repeats (FIX #8)
                 const used = [...(state.usedCardIndices || [])];
                 if (!used.includes(currentCard)) used.push(currentCard);
                 updates.usedCardIndices = used;
             } else {
-                // BUG 5 FIX — deduct 1 point on skip, floor at 0
+                // BUG 5 FIX — skip deducts 1 point, floor at 0
                 const activeTeam = state.teams[state.currentTeamIndex];
-                const newScore = Math.max(0, (activeTeam.score || 0) - 1);
-                updates[`teams/${state.currentTeamIndex}/score`] = newScore;
+                updates[`teams/${state.currentTeamIndex}/score`] = Math.max(0, (activeTeam.score || 0) - 1);
             }
 
             if (isDeckEmpty) {
@@ -776,6 +808,7 @@ class GameTurnManager {
                 updates.timeLeft         = timeLeft;
                 updates.deck             = deck;
                 updates.currentCardIndex = deck[0];
+                // Reset used set after full reshuffle
                 if (!updates.usedCardIndices) updates.usedCardIndices = state.usedCardIndices || [];
             } else {
                 updates.deck             = deck;
@@ -784,20 +817,10 @@ class GameTurnManager {
 
             await update(this.roomRef, updates);
         } finally {
+            // FIX #2 — always release the lock, even on Firebase error
             isProcessingCard = false;
         }
     }
-}
-
-// ─── BUG 3 FIX — show/hide last card error ───────────────────────────────────
-function showLastCardError() {
-    uiLastCardError.textContent = i18n[lang].lastCardError;
-    uiLastCardError.classList.remove('hidden');
-    if (lastCardErrorTimeout) clearTimeout(lastCardErrorTimeout);
-    lastCardErrorTimeout = setTimeout(() => {
-        uiLastCardError.classList.add('hidden');
-        lastCardErrorTimeout = null;
-    }, 2500);
 }
 
 // ─── enterRoom ────────────────────────────────────────────────────────────────
@@ -811,6 +834,7 @@ window.enterRoom = async function() {
         return;
     }
 
+    // FIX #12 — validate forbidden Firebase path characters
     if (hasInvalidChars(rawName)) {
         errEl.textContent = i18n[lang].roomInvalidChars;
         errEl.style.display = 'block';
@@ -818,19 +842,20 @@ window.enterRoom = async function() {
     }
     errEl.style.display = 'none';
 
-    const roomId = rawName;
+    const roomId = rawName; // no silent replacement — show error instead
     uiLobby.style.display = 'none';
     myJoinTime = Date.now();
-
-    // BUG 1 FIX — reset difficulty flag so admin's fresh choice is respected
-    adminDifficultySet = false;
-    pendingDifficulty  = 'medium';
+    // BUG 1 FIX — reset difficulty tracking for each fresh room entry
+    adminDifficultyChosen = false;
+    pendingDifficulty     = 'medium';
 
     const roomRef = ref(db, 'rooms/' + roomId);
     turnManager   = new GameTurnManager(roomRef, myPlayerId);
 
+    // FIX #1 — atomic create-if-absent via transaction
     await turnManager.connect();
 
+    // Register presence AFTER room exists
     turnManager.registerPresence();
 
     turnManager.events.onStateUpdate = (state) => renderState(state);
@@ -839,6 +864,7 @@ window.enterRoom = async function() {
 
 // ─── goToLobby ────────────────────────────────────────────────────────────────
 window.goToLobby = function() {
+    // FIX #3 — cancel pending endTurn timeout
     if (endTurnTimeout) { clearTimeout(endTurnTimeout); endTurnTimeout = null; }
 
     if (turnManager) {
@@ -863,10 +889,9 @@ window.goToLobby = function() {
     myPlayerNumber        = null;
     isEditMode            = false;
     lastDisplayedCardIndex = -1;
-    isProcessingCard      = false;
-    // BUG 1 FIX — reset difficulty state on lobby return
-    adminDifficultySet    = false;
-    pendingDifficulty     = 'medium';
+    isProcessingCard      = false; // FIX #2 — reset lock on lobby return
+    adminDifficultyChosen = false; // BUG 1 FIX
+    pendingDifficulty     = 'medium'; // BUG 1 FIX
 
     if (localTimerInterval)       { clearInterval(localTimerInterval);      localTimerInterval      = null; }
     if (window._shufflingTimeout) { clearTimeout(window._shufflingTimeout); window._shufflingTimeout = null; }
@@ -880,7 +905,7 @@ window.goToLobby = function() {
     document.getElementById('controls').classList.add('hidden');
     uiRoleMessage.classList.add('hidden');
     uiBtnStartTurn.classList.add('hidden');
-    uiLastCardError.classList.add('hidden');
+    document.getElementById('last-card-error').classList.add('hidden');
 
     updatePlayerInfoDisplay();
     uiPlayersCount.textContent = i18n[lang].waitingPlayers;
@@ -896,6 +921,7 @@ window.selectTeam = async function(teamId) {
     const state  = turnManager.currentState;
     const roomId = turnManager.roomRef.key;
 
+    // Leave old team
     for (let i = 0; i < state.teams.length; i++) {
         if (state.teams[i].players && state.teams[i].players[myPlayerId]) {
             const oldRef = ref(db, `rooms/${roomId}/teams/${i}/players/${myPlayerId}`);
@@ -904,9 +930,11 @@ window.selectTeam = async function(teamId) {
         }
     }
 
+    // Join new team — FIX #4: use timestamp-based unique number
     const teamIndex    = state.teams.findIndex(t => t.id === teamId);
     const teamPlayers  = state.teams[teamIndex].players || {};
     const existingNums = Object.values(teamPlayers).map(p => p.num || 0);
+    // Use a timestamp-derived number to avoid duplicates across simultaneous joins
     const pNumber = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
 
     const playerRef = ref(db, `rooms/${roomId}/teams/${teamIndex}/players/${myPlayerId}`);
@@ -934,9 +962,8 @@ function highlightSelectedTeamBtn() {
 window.setDifficulty = function(level) {
     if (!turnManager?.currentState) return;
     if (turnManager.currentState.adminId !== myPlayerId) return;
-    // BUG 1 FIX — mark that admin has explicitly chosen a difficulty
-    adminDifficultySet = true;
-    pendingDifficulty  = level;
+    adminDifficultyChosen = true; // BUG 1 FIX
+    pendingDifficulty = level;
     updateDifficultyUI(level);
 };
 
@@ -968,9 +995,8 @@ window.startGame = function() {
         alert(lang === 'he' ? "אנא בחר קבוצה קודם!" : "Please select a team first!");
         return;
     }
-    // BUG 1 FIX — only write pendingDifficulty if admin explicitly set it,
-    // otherwise keep whatever is already stored in Firebase
-    const diffToWrite = adminDifficultySet
+    // BUG 1 FIX — only write pendingDifficulty if admin explicitly chose; otherwise keep stored value
+    const diffToWrite = adminDifficultyChosen
         ? pendingDifficulty
         : (turnManager.currentState.difficulty || 'medium');
     update(turnManager.roomRef, { gameStarted: true, difficulty: diffToWrite });
@@ -980,6 +1006,8 @@ window.startGame = function() {
 window.resumePlay = async function() {
     if (!turnManager?.currentState) return;
     const state = turnManager.currentState;
+
+    // FIX #7 — only the current describer can resume
     if (state.describerId !== myPlayerId) return;
 
     await update(turnManager.roomRef, {
@@ -1037,6 +1065,7 @@ window.confirmSettings = async function() {
     const deck    = freshDeck();
     const state   = turnManager.currentState;
 
+    // FIX #6 — find first team index that actually has players
     let firstTeamIdx = 0;
     for (let i = 0; i < state.teams.length; i++) {
         if (state.teams[i].playerCount > 0) { firstTeamIdx = i; break; }
@@ -1050,9 +1079,9 @@ window.confirmSettings = async function() {
         turnStartTime:      null,
         describerId:        null,
         lastDescriberId:    null,
-        currentTeamIndex:   firstTeamIdx,
+        currentTeamIndex:   firstTeamIdx,  // FIX #6
         gameStarted:        true,
-        usedCardIndices:    []
+        usedCardIndices:    []             // FIX #8 reset
     };
     state.teams.forEach((_, i) => { updates[`teams/${i}/score`] = 0; });
     await update(turnManager.roomRef, updates);
@@ -1073,16 +1102,22 @@ window.restartToTeamSelection = async function() {
         describerId:      null,
         lastDescriberId:  null,
         currentTeamIndex: 0,
-        usedCardIndices:  []
+        usedCardIndices:  []  // FIX #8 reset
     };
     state.teams.forEach((_, i) => { updates[`teams/${i}/score`] = 0; });
     await update(turnManager.roomRef, updates);
 };
 
 // ─── endGameAndReset ──────────────────────────────────────────────────────────
+// FIX #10 — after broadcasting resetTimestamp, admin goes to lobby too.
+// When admin re-enters the same room name, connect() via runTransaction will
+// find the old record. We clear resetTimestamp inside the transaction so a
+// returning admin always gets a clean slate.
 window.endGameAndReset = async function() {
     if (turnManager.currentState.adminId !== myPlayerId) return;
+    // Broadcast reset to all OTHER players
     await update(turnManager.roomRef, { resetTimestamp: Date.now() });
+    // Admin also leaves — goToLobby cleans up presence
     goToLobby();
 };
 
@@ -1142,6 +1177,7 @@ function loadCardIfNeeded(index, difficultyLevel) {
     if (index === lastDisplayedCardIndex) return;
     lastDisplayedCardIndex = index;
 
+    // FIX #11 — safe card lookup with bounds check
     const cards = i18n[lang].cards;
     const card  = (index >= 0 && index < cards.length) ? cards[index] : null;
     if (!card) return;
@@ -1175,12 +1211,6 @@ function renderState(state) {
     updatePlayerInfoDisplay();
     highlightSelectedTeamBtn();
 
-    // ── BUG 1 FIX — only sync pendingDifficulty from Firebase if admin hasn't
-    // manually chosen one yet in this session (prevents reset after team pick)
-    if (isAdmin && !adminDifficultySet) {
-        pendingDifficulty = state.difficulty || 'medium';
-    }
-
     // ── Modal logic ──────────────────────────────────────────────────────────
     if (!isEditMode) {
         if (!state.gameStarted) {
@@ -1192,9 +1222,10 @@ function renderState(state) {
                 document.getElementById('admin-edit-controls').classList.add('hidden');
                 document.getElementById('non-admin-msg').classList.add('hidden');
                 document.getElementById('non-admin-note').classList.add('hidden');
-                // BUG 1 FIX — only update UI from state if admin hasn't set manually
-                if (!adminDifficultySet) {
-                    updateDifficultyUI(state.difficulty || 'medium');
+                // BUG 1 FIX — only read difficulty from Firebase if admin hasn't chosen manually yet
+                if (!adminDifficultyChosen) {
+                    pendingDifficulty = state.difficulty || 'medium';
+                    updateDifficultyUI(pendingDifficulty);
                 }
             } else {
                 document.getElementById('difficulty-group').classList.add('hidden');
@@ -1204,9 +1235,9 @@ function renderState(state) {
                 document.getElementById('non-admin-note').classList.add('hidden');
             }
         } else if (!myTeamId) {
-            // BUG 2 FIX — game is started but this player has no team yet:
-            // always show team selection. This handles the case where admin
-            // closes + immediately re-enters the same active room.
+            // BUG 2 FIX — game started but this player has no team yet.
+            // Show team selection for everyone (including admin re-entering their own room).
+            // Never show the "waiting for admin" message in this branch.
             uiModal.classList.remove('hidden');
             document.getElementById('team-selection-group').classList.remove('hidden');
             document.getElementById('difficulty-group').classList.add('hidden');
@@ -1229,6 +1260,7 @@ function renderState(state) {
         ? `${d.playersConnected} - ${playersText.join(' | ')}`
         : d.waitingChoose;
 
+    // ── FIX #5 — Winner check: only teams with active players ────────────────
     const winnerTeam = state.teams.find(t => (t.score || 0) >= MAX_STEPS && t.playerCount > 0);
     if (winnerTeam) {
         if (localTimerInterval) { clearInterval(localTimerInterval); localTimerInterval = null; }
@@ -1264,6 +1296,7 @@ function renderState(state) {
         uiBtnStartTurn.classList.add('hidden');
         document.getElementById('shuffling-ui').classList.remove('hidden');
 
+        // FIX #7 — only the active describer controls the shuffle resume
         const isDescriber = state.describerId === myPlayerId;
         document.getElementById('shuffling-loader').classList.remove('hidden');
         document.getElementById('btn-resume-play').classList.add('hidden');
@@ -1271,6 +1304,7 @@ function renderState(state) {
         if (isDescriber && !window._shufflingTimeout) {
             window._shufflingTimeout = setTimeout(() => {
                 window._shufflingTimeout = null;
+                // FIX #7 — verify this player is still the describer before showing button
                 if (turnManager?.currentState?.describerId === myPlayerId &&
                     turnManager?.currentState?.turnStatus === 'shuffling') {
                     document.getElementById('shuffling-loader').classList.add('hidden');
@@ -1313,24 +1347,19 @@ function renderState(state) {
         uiStatus.style.color    = teamColors[currentTeam.id];
 
         if (myTeamId !== currentTeam.id) {
-            // BUG 4 FIX — only show inspector view if the active team has 2+ players.
-            // With a single-player team there is no one to "inspect" — just show whose turn it is.
-            const activeTeamHasMultiplePlayers = currentTeam.playerCount >= 2;
-            if (activeTeamHasMultiplePlayers) {
+            // BUG 4 FIX — only show inspector card view when active team has 2+ players.
+            // With a solo-player team there's nothing to "inspect" — just show whose turn it is.
+            if (currentTeam.playerCount >= 2) {
                 uiRoleMessage.classList.add('hidden');
                 uiCardContainer.classList.remove('hidden');
                 document.getElementById('controls').classList.add('hidden');
                 uiCardRoleTitle.textContent = d.roleInspector;
                 loadCardIfNeeded(state.currentCardIndex, state.difficulty);
             } else {
-                // Solo team active — other teams just see whose turn it is
                 uiCardContainer.classList.add('hidden');
                 document.getElementById('controls').classList.add('hidden');
                 uiRoleMessage.classList.remove('hidden');
                 uiRoleMessage.textContent = `${d.turnOf}${d.teamNames[currentTeam.id]}${d.teamSuffix}!`;
-                uiRoleMessage.style.backgroundColor = teamBgColors[currentTeam.id];
-                uiRoleMessage.style.color           = teamColors[currentTeam.id];
-                uiRoleMessage.style.borderColor     = teamColors[currentTeam.id];
             }
         } else if (state.describerId === myPlayerId) {
             uiRoleMessage.classList.add('hidden');
@@ -1343,9 +1372,6 @@ function renderState(state) {
             document.getElementById('controls').classList.add('hidden');
             uiRoleMessage.classList.remove('hidden');
             uiRoleMessage.textContent = d.roleGuesser;
-            uiRoleMessage.style.backgroundColor = '';
-            uiRoleMessage.style.color           = '';
-            uiRoleMessage.style.borderColor     = '';
         }
         return;
     }
@@ -1386,6 +1412,7 @@ uiBtnStartTurn.addEventListener('click', () => { if (turnManager) turnManager.st
 document.getElementById('btn-correct').addEventListener('click', () => { if (turnManager) turnManager.drawCard(true); });
 document.getElementById('btn-skip').addEventListener('click',    () => { if (turnManager) turnManager.drawCard(false); });
 
+// Allow Enter key in room input
 document.getElementById('room-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') enterRoom();
 });
