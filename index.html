@@ -34,7 +34,7 @@
         input:checked + .slider:before { transform: translateX(20px); }
         .lang-label { color: #aaa; transition: 0.3s; }
         .lang-active { color: #3498DB; font-weight: 900; }
-
+ 
         #lobby {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background-color: rgba(253, 251, 247, 0.98);
@@ -53,7 +53,7 @@
             box-shadow: 0 4px 0 #2980B9; transition: transform 0.1s;
         }
         .btn-join-room:active { transform: translateY(4px); box-shadow: none; }
-
+ 
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background-color: rgba(0,0,0,0.6);
@@ -81,7 +81,7 @@
         .team-btn.purple { background-color: #E8DAEF; color: #6C3483; }
         .team-btn.green  { background-color: #D5F5E3; color: #1E8449; }
         .team-btn.yellow { background-color: #FCF3CF; color: #B7950B; }
-
+ 
         #shared-board {
             background-color: #f4f1ea; padding: 15px 10px; text-align: center;
             border-bottom: 3px solid #e0dcd3; box-shadow: 0 4px 10px rgba(0,0,0,0.05); z-index: 10;
@@ -106,7 +106,7 @@
         .square.finish { border: 2px solid #f39c12; color: #f39c12; background-color: #fef9e7; }
         .top-info { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; padding: 0 10px; }
         #timer { font-size: 40px; font-weight: bold; color: #e74c3c; margin-top: 5px; }
-
+ 
         #personal-area {
             padding: 20px 10px 40px 10px; flex: 1;
             display: none; flex-direction: column; align-items: center; justify-content: flex-start;
@@ -170,7 +170,7 @@
     </style>
 </head>
 <body>
-
+ 
 <div id="lobby">
     <div class="lang-toggle-container">
         <span id="lbl-he" class="lang-label lang-active">HE</span>
@@ -186,13 +186,13 @@
     <p id="room-input-error" style="color:#e74c3c;font-size:13px;margin:0 0 10px 0;display:none;"></p>
     <button id="btn-join" class="btn-join-room" onclick="enterRoom()">היכנס לחדר</button>
 </div>
-
+ 
 <!-- Setup / Settings Modal -->
 <div id="setup-modal" class="modal-overlay hidden">
     <div class="modal-content">
         <h2 id="modal-title">הגדרות חדר</h2>
         <div id="non-admin-note" class="hidden" style="color:#e74c3c;font-weight:bold;font-size:14px;margin-bottom:15px;"></div>
-
+ 
         <div class="settings-group" id="difficulty-group">
             <h4 id="txt-difficulty">רמת קושי</h4>
             <div class="diff-buttons">
@@ -201,7 +201,7 @@
                 <button class="diff-btn" id="diff-hard"   onclick="setDifficulty('hard')">קשה</button>
             </div>
         </div>
-
+ 
         <div class="settings-group" id="team-selection-group">
             <h4 id="txt-select-team">בחירת קבוצה</h4>
             <div id="modal-team-buttons">
@@ -212,12 +212,12 @@
                 <button class="team-btn yellow" id="team-yellow" onclick="selectTeam('yellow')">צהובה</button>
             </div>
         </div>
-
+ 
         <!-- First-time admin (before game starts) -->
         <div id="admin-setup-controls" class="hidden">
             <button id="btn-modal-start" class="btn-start" style="width:100%;margin-top:10px;" onclick="startGame()">התחל משחק</button>
         </div>
-
+ 
         <!-- In-game settings (gear icon) -->
         <div id="admin-edit-controls" class="hidden">
             <button id="btn-change-teams"
@@ -234,14 +234,14 @@
                     onclick="closeModal()">ביטול</button>
             </div>
         </div>
-
+ 
         <!-- Non-admin waiting message (before game starts) -->
         <div id="non-admin-msg" class="hidden" style="margin-top:20px;color:#777;font-weight:bold;font-size:16px;">
             ממתין למנהל החדר שיתחיל את המשחק...
         </div>
     </div>
 </div>
-
+ 
 <!-- Winner Modal -->
 <div id="winner-modal" class="modal-overlay hidden">
     <div class="modal-content">
@@ -254,7 +254,7 @@
         </div>
     </div>
 </div>
-
+ 
 <!-- Main board -->
 <div id="shared-board">
     <div class="top-info">
@@ -274,12 +274,12 @@
     <div id="timer">01:00</div>
     <div id="status" style="margin-top:5px;color:#888;font-weight:bold;transition:font-size 0.3s;">ממתין לשחקנים...</div>
 </div>
-
+ 
 <div id="personal-area">
     <button id="btn-start-turn" class="btn-start hidden">התחל תור</button>
     <div id="role-message" class="message-box hidden"></div>
     <div id="last-card-error" class="error-box hidden"></div>
-
+ 
     <div id="shuffling-ui" class="message-box hidden"
         style="background-color:#fff3cd;color:#856404;border-color:#ffeeba;">
         <h3 id="txt-shuffling" style="margin-top:0;">מערבב חפיסה מחדש...</h3>
@@ -287,7 +287,7 @@
         <button id="btn-resume-play" class="btn-start hidden" onclick="resumePlay()"
             style="width:100%;margin-top:10px;">חזור לשחק</button>
     </div>
-
+ 
     <div id="card-container" class="card hidden">
         <div id="card-role-title"></div>
         <div class="main-word-container">
@@ -296,19 +296,19 @@
         </div>
         <ul class="taboo-list" id="taboo-words"></ul>
     </div>
-
+ 
     <div id="controls" class="controls hidden">
         <button id="btn-skip"    class="action-btn btn-skip">פס / דילוג</button>
         <button id="btn-correct" class="action-btn btn-correct">הצליחו!</button>
     </div>
 </div>
-
+ 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {
     getDatabase, ref, set, onValue, update, get, remove, onDisconnect, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-
+ 
 const firebaseConfig = {
     apiKey:      "AIzaSyDiGUmCG08Ke6JYYR_gW6r-JMwdxt0aJDk",
     authDomain:  "talio-board.firebaseapp.com",
@@ -317,9 +317,9 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
-
+ 
 let lang = 'he';
-
+ 
 const CARDS_HE = [
     {word:"כלב",     icon:"🐶", taboo:["חיה","נבחן","חתול","עצם","רצועה","זנב"]},
     {word:"שמש",     icon:"☀️", taboo:["יום","אור","חם","שמיים","צהוב","כוכב"]},
@@ -368,7 +368,7 @@ const CARDS_EN = [
 ];
 console.assert(CARDS_HE.length === CARDS_EN.length);
 const DECK_SIZE = CARDS_HE.length;
-
+ 
 const i18n = {
     he: {
         enterRoom:"הכנס שם חדר להתחלה:", roomPlaceholder:"שם החדר (למשל: משפחת כהן)", joinBtn:"היכנס לחדר",
@@ -419,7 +419,7 @@ const i18n = {
         cards: CARDS_EN
     }
 };
-
+ 
 function shuffleArray(a) {
     a = [...a];
     for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
@@ -431,17 +431,17 @@ function formatTime(s) {
     return `${m<10?'0'+m:m}:${r<10?'0'+r:r}`;
 }
 function hasInvalidChars(n) { return /[.#$[\]/]/.test(n); }
-
+ 
 const myPlayerId = Math.random().toString(36).substring(2,10);
 let myTeamId=null, myPlayerNumber=null, myJoinTime=null, isEditMode=false;
 let pendingDifficulty='medium', adminDifficultyChosen=false;
 let turnManager=null, localTimerInterval=null, lastDisplayedCardIndex=-1;
 let isProcessingCard=false, endTurnTimeout=null, lastCardErrorTimeout=null;
-
+ 
 const MAX_STEPS=30;
 const teamColors  ={blue:'#2874A6',red:'#943126',purple:'#6C3483',green:'#1E8449',yellow:'#B7950B'};
 const teamBgColors={blue:'#D6EAF8',red:'#FADBD8',purple:'#E8DAEF',green:'#D5F5E3',yellow:'#FCF3CF'};
-
+ 
 // Build board squares
 const boardGrid=document.getElementById('board-grid');
 for(let i=0;i<=MAX_STEPS;i++){
@@ -451,7 +451,7 @@ for(let i=0;i<=MAX_STEPS;i++){
     else sq.innerText=i;
     boardGrid.appendChild(sq);
 }
-
+ 
 const uiLobby=document.getElementById('lobby');
 const uiModal=document.getElementById('setup-modal');
 const uiTimer=document.getElementById('timer');
@@ -463,7 +463,7 @@ const uiCardRoleTitle=document.getElementById('card-role-title');
 const uiPlayersCount=document.getElementById('players-count');
 const uiPlayerInfoDisplay=document.getElementById('player-info-display');
 const uiLastCardError=document.getElementById('last-card-error');
-
+ 
 window.toggleLanguage=function(){
     const isEn=document.getElementById('lang-toggle-btn').checked;
     lang=isEn?'en':'he'; document.documentElement.dir=isEn?'ltr':'rtl';
@@ -471,7 +471,7 @@ window.toggleLanguage=function(){
     document.getElementById('lbl-en').classList.toggle('lang-active',isEn);
     updateStaticText(); if(turnManager&&turnManager.currentState)renderState(turnManager.currentState);
 };
-
+ 
 function updateStaticText(){
     const d=i18n[lang];
     document.getElementById('txt-enter-room').textContent=d.enterRoom;
@@ -505,7 +505,7 @@ function updateStaticText(){
     const sq0=document.getElementById('sq-0'); if(sq0)sq0.innerText=d.startSquare;
     const sqM=document.getElementById('sq-'+MAX_STEPS); if(sqM)sqM.innerText=d.finishSquare;
 }
-
+ 
 class GameTurnManager {
     constructor(roomRef,playerId){this.roomRef=roomRef;this.playerId=playerId;this.currentState=null;this.events={onStateUpdate:()=>{}};}
     _buildInitialState(){
@@ -605,7 +605,7 @@ class GameTurnManager {
         } finally{isProcessingCard=false;}
     }
 }
-
+ 
 window.enterRoom=async function(){
     const raw=document.getElementById('room-input').value.trim();
     const err=document.getElementById('room-input-error');
@@ -621,7 +621,7 @@ window.enterRoom=async function(){
     await turnManager.connect(); turnManager.registerPresence();
     turnManager.events.onStateUpdate=renderState; turnManager.listenToState();
 };
-
+ 
 window.goToLobby=function(){
     if(endTurnTimeout){clearTimeout(endTurnTimeout);endTurnTimeout=null;}
     if(localTimerInterval){clearInterval(localTimerInterval);localTimerInterval=null;}
@@ -651,7 +651,7 @@ window.goToLobby=function(){
     uiTimer.textContent='01:00';
     uiStatus.textContent=i18n[lang].waitingPlayers;
 };
-
+ 
 window.selectTeam=async function(teamId){
     if(!turnManager?.currentState||myTeamId===teamId)return;
     const s=turnManager.currentState,rid=turnManager.roomRef.key;
@@ -664,37 +664,37 @@ window.selectTeam=async function(teamId){
     myTeamId=teamId;myPlayerNumber=pNum;
     updatePlayerInfoDisplay();highlightSelectedTeamBtn();renderState(turnManager.currentState);
 };
-
+ 
 function highlightSelectedTeamBtn(){
     document.querySelectorAll('#modal-team-buttons .team-btn').forEach(b=>b.style.border='3px solid transparent');
     if(myTeamId){const b=document.querySelector(`#modal-team-buttons .team-btn.${myTeamId}`);if(b)b.style.border='3px solid #333';}
 }
-
+ 
 window.setDifficulty=function(level){
     if(!turnManager?.currentState||turnManager.currentState.adminId!==myPlayerId)return;
     adminDifficultyChosen=true;pendingDifficulty=level;updateDifficultyUI(level); // BUG 1 FIX
 };
-
+ 
 function updateDifficultyUI(level){
     const isAdmin=turnManager?.currentState?.adminId===myPlayerId;
     document.querySelectorAll('.diff-btn').forEach(b=>{b.style.backgroundColor='#f9f9f9';b.style.borderColor='#ddd';b.style.color='#666';b.style.opacity=isAdmin?'1':'0.6';b.style.cursor=isAdmin?'pointer':'not-allowed';});
     const map={easy:{el:'diff-easy',bg:'#d5f5e3',border:'#2ecc71',color:'#27ae60'},medium:{el:'diff-medium',bg:'#fcf3cf',border:'#f1c40f',color:'#f39c12'},hard:{el:'diff-hard',bg:'#fadbd8',border:'#e74c3c',color:'#c0392b'}};
     if(map[level]){const b=document.getElementById(map[level].el);b.style.backgroundColor=map[level].bg;b.style.borderColor=map[level].border;b.style.color=map[level].color;}
 }
-
+ 
 window.startGame=function(){
     if(!myTeamId){alert(lang==='he'?"אנא בחר קבוצה קודם!":"Please select a team first!");return;}
     // BUG 1 FIX — use stored difficulty unless admin explicitly changed it
     const diff=adminDifficultyChosen?pendingDifficulty:(turnManager.currentState.difficulty||'medium');
     update(turnManager.roomRef,{gameStarted:true,difficulty:diff});
 };
-
+ 
 window.resumePlay=async function(){
     if(!turnManager?.currentState)return;
     const s=turnManager.currentState; if(s.describerId!==myPlayerId)return;
     await update(turnManager.roomRef,{turnStatus:'active',turnStartTime:Date.now()-((s.turnDuration-(s.timeLeft||0))*1000),timeLeft:null});
 };
-
+ 
 window.openSettings=function(){
     if(!turnManager?.currentState)return;
     isEditMode=true;pendingDifficulty=turnManager.currentState.difficulty;updateDifficultyUI(pendingDifficulty);
@@ -721,9 +721,9 @@ window.openSettings=function(){
         document.getElementById('btn-modal-cancel').textContent=i18n[lang].close;
     }
 };
-
+ 
 window.closeModal=function(){isEditMode=false;uiModal.classList.add('hidden');if(turnManager?.currentState)updateDifficultyUI(turnManager.currentState.difficulty);};
-
+ 
 window.confirmSettings=async function(){
     if(turnManager.currentState.adminId!==myPlayerId)return;
     isEditMode=false;uiModal.classList.add('hidden');
@@ -733,7 +733,7 @@ window.confirmSettings=async function(){
     s.teams.forEach((_,i)=>{upd[`teams/${i}/score`]=0;});
     await update(turnManager.roomRef,upd);
 };
-
+ 
 window.restartToTeamSelection=async function(){
     if(turnManager.currentState.adminId!==myPlayerId)return;
     isEditMode=false;uiModal.classList.add('hidden');document.getElementById('winner-modal').classList.add('hidden');
@@ -742,13 +742,13 @@ window.restartToTeamSelection=async function(){
     s.teams.forEach((_,i)=>{upd[`teams/${i}/score`]=0;});
     await update(turnManager.roomRef,upd);
 };
-
+ 
 window.endGameAndReset=async function(){
     if(turnManager.currentState.adminId!==myPlayerId)return;
     await update(turnManager.roomRef,{resetTimestamp:Date.now()});
     goToLobby();
 };
-
+ 
 function updatePlayerInfoDisplay(){
     if(myTeamId&&myPlayerNumber){
         const d=i18n[lang],isAdmin=turnManager?.currentState?.adminId===myPlayerId;
@@ -761,7 +761,7 @@ function updatePlayerInfoDisplay(){
         uiPlayerInfoDisplay.innerHTML='';uiPlayerInfoDisplay.style.backgroundColor='transparent';uiCardContainer.style.backgroundColor='white';
     }
 }
-
+ 
 function updateBoardColors(teams){
     for(let i=0;i<=MAX_STEPS;i++){const sq=document.getElementById('sq-'+i);if(sq)sq.style.background='';}
     const map={};
@@ -772,7 +772,7 @@ function updateBoardColors(teams){
         else{const dir=lang==='he'?'to right':'to left',step=100/c.length;sq.style.background=`linear-gradient(${dir},${c.map((x,i)=>`${x} ${i*step}%,${x} ${(i+1)*step}%`).join(',')})`;}
     }
 }
-
+ 
 let fadeTimeout;
 function loadCardIfNeeded(index,diff){
     if(index===lastDisplayedCardIndex)return; lastDisplayedCardIndex=index;
@@ -787,11 +787,11 @@ function loadCardIfNeeded(index,diff){
         uiCardContainer.classList.remove('fade-out');
     },300);
 }
-
+ 
 function renderState(state){
     const d=i18n[lang],isAdmin=state.adminId===myPlayerId;
     updatePlayerInfoDisplay(); highlightSelectedTeamBtn();
-
+ 
     // ── Modal ────────────────────────────────────────────────────────────────
     if(!isEditMode){
         if(!state.gameStarted){
@@ -826,12 +826,12 @@ function renderState(state){
             uiModal.classList.add('hidden');
         }
     }
-
+ 
     document.getElementById('btn-settings').classList.toggle('hidden',!state.gameStarted);
     updateBoardColors(state.teams);
     const pt=state.teams.filter(t=>t.playerCount>0).map(t=>`${d.teamNames[t.id]}: ${t.playerCount}`);
     uiPlayersCount.textContent=pt.length?`${d.playersConnected} - ${pt.join(' | ')}`:d.waitingChoose;
-
+ 
     // Winner
     const winner=state.teams.find(t=>(t.score||0)>=MAX_STEPS&&t.playerCount>0);
     if(winner){
@@ -845,10 +845,10 @@ function renderState(state){
         document.getElementById('winner-non-admin-msg').classList.toggle('hidden',isAdmin);
         return;
     } else {document.getElementById('winner-modal').classList.add('hidden');}
-
+ 
     if(!state.gameStarted||!myTeamId)return;
     const ct=state.teams[state.currentTeamIndex]; if(!ct)return;
-
+ 
     // Shuffling
     if(state.turnStatus==='shuffling'){
         if(localTimerInterval){clearInterval(localTimerInterval);localTimerInterval=null;}
@@ -873,7 +873,7 @@ function renderState(state){
         document.getElementById('shuffling-ui').classList.add('hidden');
         if(window._shufflingTimeout){clearTimeout(window._shufflingTimeout);window._shufflingTimeout=null;}
     }
-
+ 
     // Timer
     if(state.turnStatus==='active'){
         if(!localTimerInterval){
@@ -886,7 +886,7 @@ function renderState(state){
             },250);
         }
     } else {if(localTimerInterval){clearInterval(localTimerInterval);localTimerInterval=null;}uiTimer.textContent=formatTime(state.turnDuration);}
-
+ 
     // Active turn
     if(state.turnStatus==='active'){
         uiBtnStartTurn.classList.add('hidden');
@@ -911,7 +911,7 @@ function renderState(state){
         }
         return;
     }
-
+ 
     // Between turns
     uiCardContainer.classList.add('hidden');document.getElementById('controls').classList.add('hidden');
     uiRoleMessage.classList.add('hidden');lastDisplayedCardIndex=-1;
@@ -926,12 +926,12 @@ function renderState(state){
         } else {uiBtnStartTurn.classList.add('hidden');}
     }
 }
-
+ 
 uiBtnStartTurn.addEventListener('click',()=>{if(turnManager)turnManager.startTurn();});
 document.getElementById('btn-correct').addEventListener('click',()=>{if(turnManager)turnManager.drawCard(true);});
 document.getElementById('btn-skip').addEventListener('click',()=>{if(turnManager)turnManager.drawCard(false);});
 document.getElementById('room-input').addEventListener('keydown',e=>{if(e.key==='Enter')enterRoom();});
-
+ 
 updateStaticText();
 </script>
 </body>
