@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -35,131 +36,146 @@
         .lang-label { color: #aaa; transition: 0.3s; }
         .lang-active { color: #3498DB; font-weight: 900; }
 
-        #lobby {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(253, 251, 247, 0.98);
-            display: flex; flex-direction: column; justify-content: flex-start;
-            align-items: center; padding-top: 20px; z-index: 100;
-        }
-        #lobby h1, #lobby h3 { margin-top: 0; }
-        .room-input {
-            width: 80%; max-width: 300px; padding: 15px; font-size: 20px;
-            margin-top: 10px; margin-bottom: 25px; border: 2px solid #dcd5c6;
-            border-radius: 12px; text-align: center; background-color: #fff; color: #333;
-        }
-        .btn-join-room {
-            background-color: #3498DB; color: white; padding: 15px 30px; font-size: 22px;
-            border: none; border-radius: 12px; cursor: pointer; font-weight: bold;
-            box-shadow: 0 4px 0 #2980B9; transition: transform 0.1s;
-        }
-        .btn-join-room:active { transform: translateY(4px); box-shadow: none; }
+```
+    #lobby {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background-color: rgba(253, 251, 247, 0.98);
+        display: flex; flex-direction: column; justify-content: flex-start;
+        align-items: center; padding-top: 20px; z-index: 100;
+    }
+    #lobby h1, #lobby h3 { margin-top: 0; }
+    .room-input {
+        width: 80%; max-width: 300px; padding: 15px; font-size: 20px;
+        margin-top: 10px; margin-bottom: 25px; border: 2px solid #dcd5c6;
+        border-radius: 12px; text-align: center; background-color: #fff; color: #333;
+    }
+    .btn-join-room {
+        background-color: #3498DB; color: white; padding: 15px 30px; font-size: 22px;
+        border: none; border-radius: 12px; cursor: pointer; font-weight: bold;
+        box-shadow: 0 4px 0 #2980B9; transition: transform 0.1s;
+    }
+    .btn-join-room:active { transform: translateY(4px); box-shadow: none; }
 
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(0,0,0,0.6);
-            display: flex; justify-content: center; align-items: center; z-index: 200;
-        }
-        .modal-content {
-            background-color: #fff; padding: 25px; border-radius: 20px;
-            width: 90%; max-width: 400px; text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;
-        }
-        .settings-group { margin-bottom: 20px; }
-        .settings-group h4 { margin: 0 0 10px 0; color: #555; font-size: 18px; }
-        .diff-buttons { display: flex; gap: 8px; justify-content: center; }
-        .diff-btn {
-            flex: 1; padding: 10px; font-size: 16px; font-weight: bold; border-radius: 10px;
-            border: 2px solid #ddd; cursor: pointer; background-color: #f9f9f9; color: #666; transition: all 0.2s;
-        }
-        #modal-team-buttons { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-        .team-btn {
-            padding: 12px 15px; font-size: 16px; border-radius: 10px;
-            border: 3px solid transparent; cursor: pointer; font-weight: bold; transition: all 0.2s;
-        }
-        .team-btn.blue   { background-color: #D6EAF8; color: #2874A6; }
-        .team-btn.red    { background-color: #FADBD8; color: #943126; }
-        .team-btn.purple { background-color: #E8DAEF; color: #6C3483; }
-        .team-btn.green  { background-color: #D5F5E3; color: #1E8449; }
-        .team-btn.yellow { background-color: #FCF3CF; color: #B7950B; }
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background-color: rgba(0,0,0,0.6);
+        display: flex; justify-content: center; align-items: center; z-index: 200;
+    }
+    .modal-content {
+        background-color: #fff; padding: 25px; border-radius: 20px;
+        width: 90%; max-width: 400px; text-align: center;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;
+    }
+    .settings-group { margin-bottom: 20px; }
+    .settings-group h4 { margin: 0 0 10px 0; color: #555; font-size: 18px; }
+    .diff-buttons { display: flex; gap: 8px; justify-content: center; }
+    .diff-btn {
+        flex: 1; padding: 10px; font-size: 16px; font-weight: bold; border-radius: 10px;
+        border: 2px solid #ddd; cursor: pointer; background-color: #f9f9f9; color: #666; transition: all 0.2s;
+    }
+    #modal-team-buttons { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .team-btn {
+        padding: 12px 15px; font-size: 16px; border-radius: 10px;
+        border: 3px solid transparent; cursor: pointer; font-weight: bold; transition: all 0.2s;
+    }
+    .team-btn.blue   { background-color: #D6EAF8; color: #2874A6; }
+    .team-btn.red    { background-color: #FADBD8; color: #943126; }
+    .team-btn.purple { background-color: #E8DAEF; color: #6C3483; }
+    .team-btn.green  { background-color: #D5F5E3; color: #1E8449; }
+    .team-btn.yellow { background-color: #FCF3CF; color: #B7950B; }
 
-        #shared-board {
-            background-color: #f4f1ea; padding: 15px 10px; text-align: center;
-            border-bottom: 3px solid #e0dcd3; box-shadow: 0 4px 10px rgba(0,0,0,0.05); z-index: 10;
-        }
-        .game-title {
-            font-size: 26px; font-weight: 900; color: #f39c12; letter-spacing: 1px;
-            margin-bottom: 5px; flex: 1; text-align: right;
-        }
-        [dir="ltr"] .game-title { text-align: left; }
-        .board-grid {
-            display: flex; flex-wrap: wrap; gap: 4px; justify-content: center;
-            margin: 10px auto; max-width: 600px; padding: 10px;
-            background-color: #ffffff; border-radius: 12px; border: 2px solid #e0dcd3;
-        }
-        .square {
-            width: 35px; height: 35px; background-color: #faf9f5;
-            border: 1px solid #ece8e0; border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 12px; color: #aaa; font-weight: bold;
-        }
-        .square.finish { border: 2px solid #f39c12; color: #f39c12; background-color: #fef9e7; }
-        .top-info { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; padding: 0 10px; }
-        #timer { font-size: 40px; font-weight: bold; color: #e74c3c; margin-top: 5px; }
+    #shared-board {
+        background-color: #f4f1ea; padding: 15px 10px; text-align: center;
+        border-bottom: 3px solid #e0dcd3; box-shadow: 0 4px 10px rgba(0,0,0,0.05); z-index: 10;
+    }
+    .game-title {
+        font-size: 26px; font-weight: 900; color: #f39c12; letter-spacing: 1px;
+        margin-bottom: 5px; flex: 1; text-align: right;
+    }
+    [dir="ltr"] .game-title { text-align: left; }
+    .board-grid {
+        display: flex; flex-wrap: wrap; gap: 4px; justify-content: center;
+        margin: 10px auto; max-width: 600px; padding: 10px;
+        background-color: #ffffff; border-radius: 12px; border: 2px solid #e0dcd3;
+    }
+    .square {
+        width: 35px; height: 35px; background-color: #faf9f5;
+        border: 1px solid #ece8e0; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 12px; color: #aaa; font-weight: bold;
+    }
+    .square.finish { border: 2px solid #f39c12; color: #f39c12; background-color: #fef9e7; }
+    .top-info { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; padding: 0 10px; }
+    #timer { font-size: 40px; font-weight: bold; color: #e74c3c; margin-top: 5px; }
 
-        #personal-area {
-            padding: 20px 10px 40px 10px; flex: 1;
-            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-        }
-        .card {
-            background-color: white; color: #333; width: 90%; max-width: 350px; border-radius: 20px;
-            padding: 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-            margin-bottom: 20px; margin-top: 10px; border: 1px solid #f0f0f0;
-            transition: opacity 0.3s ease, background-color 0.4s ease;
-        }
-        .fade-out { opacity: 0 !important; }
-        #card-role-title {
-            font-size: 18px; font-weight: bold; color: #444; margin-bottom: 15px;
-            background-color: rgba(255,255,255,0.7); padding: 8px; border-radius: 8px; border: 1px dashed #ccc;
-        }
-        .main-word-container {
-            display: flex; align-items: center; justify-content: center; gap: 15px;
-            margin-bottom: 10px; border-bottom: 2px dashed rgba(0,0,0,0.1); padding-bottom: 10px;
-        }
-        .main-word { font-size: 32px; font-weight: 900; color: #2c3e50; }
-        .card-icon  { font-size: 40px; }
-        .taboo-list { list-style: none; padding: 0; margin: 0; font-size: 20px; color: #c0392b; font-weight: bold; }
-        .taboo-list li { margin: 8px 0; }
-        .controls { display: flex; width: 95%; max-width: 400px; gap: 15px; }
-        button.action-btn {
-            flex: 1; padding: 18px 10px; font-size: 20px; font-weight: bold;
-            border: none; border-radius: 12px; cursor: pointer; color: #333;
-        }
-        .btn-correct { background-color: #A9DFBF; box-shadow: 0 4px 0 #7DCEA0; }
-        .btn-skip    { background-color: #F5B7B1; box-shadow: 0 4px 0 #F1948A; }
-        .btn-start {
-            background-color: #A9DFBF; color: #1E8449; width: 90%; max-width: 350px; margin-top: 20px;
-            box-shadow: 0 4px 0 #7DCEA0; border: none; padding: 18px; font-size: 22px; font-weight: bold;
-            border-radius: 12px; cursor: pointer; transition: all 0.1s;
-        }
-        .btn-start:active { transform: translateY(4px); box-shadow: none; }
-        .hidden { display: none !important; }
-        .message-box {
-            background-color: #e8f8f5; color: #117a65; padding: 15px; border-radius: 10px;
-            text-align: center; font-size: 18px; font-weight: bold;
-            width: 90%; max-width: 350px; margin-top: 20px; border: 1px solid #d1f2eb;
-        }
-        .players-count { font-size: 14px; color: #7f8c8d; margin-bottom: 10px; font-weight: bold; }
-        .loader {
-            border: 5px solid #f3f3f3; border-top: 5px solid #3498db;
-            border-radius: 50%; width: 40px; height: 40px;
-            animation: spin 1s linear infinite; margin: 15px auto;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @media (max-width: 400px) {
-            .square { width: 28px; height: 28px; font-size: 10px; border-radius: 6px; }
-            .btn-start { font-size: 18px; }
-        }
-    </style>
+    #personal-area {
+        padding: 20px 10px 40px 10px; flex: 1;
+        display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    }
+    .card {
+        background-color: white; color: #333; width: 90%; max-width: 350px; border-radius: 20px;
+        padding: 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        margin-bottom: 20px; margin-top: 10px; border: 1px solid #f0f0f0;
+        transition: opacity 0.3s ease, background-color 0.4s ease;
+    }
+    .fade-out { opacity: 0 !important; }
+    #card-role-title {
+        font-size: 18px; font-weight: bold; color: #444; margin-bottom: 15px;
+        background-color: rgba(255,255,255,0.7); padding: 8px; border-radius: 8px; border: 1px dashed #ccc;
+    }
+    .main-word-container {
+        display: flex; align-items: center; justify-content: center; gap: 15px;
+        margin-bottom: 10px; border-bottom: 2px dashed rgba(0,0,0,0.1); padding-bottom: 10px;
+    }
+    .main-word { font-size: 32px; font-weight: 900; color: #2c3e50; }
+    .card-icon  { font-size: 40px; }
+    .taboo-list { list-style: none; padding: 0; margin: 0; font-size: 20px; color: #c0392b; font-weight: bold; }
+    .taboo-list li { margin: 8px 0; }
+    .controls { display: flex; width: 95%; max-width: 400px; gap: 15px; }
+    button.action-btn {
+        flex: 1; padding: 18px 10px; font-size: 20px; font-weight: bold;
+        border: none; border-radius: 12px; cursor: pointer; color: #333;
+    }
+    .btn-correct { background-color: #A9DFBF; box-shadow: 0 4px 0 #7DCEA0; }
+    .btn-skip    { background-color: #F5B7B1; box-shadow: 0 4px 0 #F1948A; }
+    .btn-start {
+        background-color: #A9DFBF; color: #1E8449; width: 90%; max-width: 350px; margin-top: 20px;
+        box-shadow: 0 4px 0 #7DCEA0; border: none; padding: 18px; font-size: 22px; font-weight: bold;
+        border-radius: 12px; cursor: pointer; transition: all 0.1s;
+    }
+    .btn-start:active { transform: translateY(4px); box-shadow: none; }
+    .hidden { display: none !important; }
+    .message-box {
+        background-color: #e8f8f5; color: #117a65; padding: 15px; border-radius: 10px;
+        text-align: center; font-size: 18px; font-weight: bold;
+        width: 90%; max-width: 350px; margin-top: 20px; border: 1px solid #d1f2eb;
+    }
+    /* BUG 3 FIX — error message box */
+    .error-box {
+        background-color: #fadbd8; color: #922b21; padding: 12px 18px; border-radius: 10px;
+        text-align: center; font-size: 17px; font-weight: bold;
+        width: 90%; max-width: 350px; margin-top: 10px; border: 2px solid #e74c3c;
+        animation: errorPulse 0.4s ease;
+    }
+    @keyframes errorPulse {
+        0%   { transform: scale(1); }
+        50%  { transform: scale(1.04); }
+        100% { transform: scale(1); }
+    }
+    .players-count { font-size: 14px; color: #7f8c8d; margin-bottom: 10px; font-weight: bold; }
+    .loader {
+        border: 5px solid #f3f3f3; border-top: 5px solid #3498db;
+        border-radius: 50%; width: 40px; height: 40px;
+        animation: spin 1s linear infinite; margin: 15px auto;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @media (max-width: 400px) {
+        .square { width: 28px; height: 28px; font-size: 10px; border-radius: 6px; }
+        .btn-start { font-size: 18px; }
+    }
+</style>
+```
+
 </head>
 <body>
 
@@ -180,61 +196,66 @@
 </div>
 
 <!-- Setup / Settings Modal -->
+
 <div id="setup-modal" class="modal-overlay hidden">
     <div class="modal-content">
         <h2 id="modal-title">הגדרות חדר</h2>
         <div id="non-admin-note" class="hidden" style="color:#e74c3c;font-weight:bold;font-size:14px;margin-bottom:15px;"></div>
 
-        <div class="settings-group" id="difficulty-group">
-            <h4 id="txt-difficulty">רמת קושי</h4>
-            <div class="diff-buttons">
-                <button class="diff-btn" id="diff-easy"   onclick="setDifficulty('easy')">קל</button>
-                <button class="diff-btn" id="diff-medium" onclick="setDifficulty('medium')">בינוני</button>
-                <button class="diff-btn" id="diff-hard"   onclick="setDifficulty('hard')">קשה</button>
-            </div>
-        </div>
-
-        <div class="settings-group" id="team-selection-group">
-            <h4 id="txt-select-team">בחירת קבוצה</h4>
-            <div id="modal-team-buttons">
-                <button class="team-btn blue"   id="team-blue"   onclick="selectTeam('blue')">תכלת</button>
-                <button class="team-btn red"    id="team-red"    onclick="selectTeam('red')">ורודה</button>
-                <button class="team-btn purple" id="team-purple" onclick="selectTeam('purple')">סגולה</button>
-                <button class="team-btn green"  id="team-green"  onclick="selectTeam('green')">ירוקה</button>
-                <button class="team-btn yellow" id="team-yellow" onclick="selectTeam('yellow')">צהובה</button>
-            </div>
-        </div>
-
-        <!-- First-time admin (before game starts) -->
-        <div id="admin-setup-controls" class="hidden">
-            <button id="btn-modal-start" class="btn-start" style="width:100%;margin-top:10px;" onclick="startGame()">התחל משחק</button>
-        </div>
-
-        <!-- In-game settings (gear icon) -->
-        <div id="admin-edit-controls" class="hidden">
-            <button id="btn-change-teams"
-                style="width:100%;margin-bottom:15px;padding:12px;border-radius:12px;border:2px solid #e67e22;background:#fdf2e9;color:#d35400;font-weight:bold;cursor:pointer;"
-                onclick="restartToTeamSelection()">החלפת קבוצות (התחל מחדש)</button>
-            <button id="btn-end-game"
-                style="width:100%;margin-bottom:15px;padding:12px;border-radius:12px;border:2px solid #c0392b;background:#fadbd8;color:#900;font-weight:bold;cursor:pointer;"
-                onclick="endGameAndReset()">סיים משחק (מחק חדר)</button>
-            <p id="edit-warning" style="color:#e74c3c;font-size:14px;font-weight:bold;margin-bottom:15px;">שינוי הגדרות יתחיל את המשחק מחדש</p>
-            <div style="display:flex;gap:10px;">
-                <button id="btn-modal-confirm" class="btn-start" style="flex:1;margin-top:0;" onclick="confirmSettings()">אישור</button>
-                <button id="btn-modal-cancel"
-                    style="flex:1;padding:18px;border-radius:12px;border:2px solid #ccc;background:#eee;font-weight:bold;cursor:pointer;"
-                    onclick="closeModal()">ביטול</button>
-            </div>
-        </div>
-
-        <!-- Non-admin waiting message (before game starts) -->
-        <div id="non-admin-msg" class="hidden" style="margin-top:20px;color:#777;font-weight:bold;font-size:16px;">
-            ממתין למנהל החדר שיתחיל את המשחק...
+```
+    <div class="settings-group" id="difficulty-group">
+        <h4 id="txt-difficulty">רמת קושי</h4>
+        <div class="diff-buttons">
+            <button class="diff-btn" id="diff-easy"   onclick="setDifficulty('easy')">קל</button>
+            <button class="diff-btn" id="diff-medium" onclick="setDifficulty('medium')">בינוני</button>
+            <button class="diff-btn" id="diff-hard"   onclick="setDifficulty('hard')">קשה</button>
         </div>
     </div>
+
+    <div class="settings-group" id="team-selection-group">
+        <h4 id="txt-select-team">בחירת קבוצה</h4>
+        <div id="modal-team-buttons">
+            <button class="team-btn blue"   id="team-blue"   onclick="selectTeam('blue')">תכלת</button>
+            <button class="team-btn red"    id="team-red"    onclick="selectTeam('red')">ורודה</button>
+            <button class="team-btn purple" id="team-purple" onclick="selectTeam('purple')">סגולה</button>
+            <button class="team-btn green"  id="team-green"  onclick="selectTeam('green')">ירוקה</button>
+            <button class="team-btn yellow" id="team-yellow" onclick="selectTeam('yellow')">צהובה</button>
+        </div>
+    </div>
+
+    <!-- First-time admin (before game starts) -->
+    <div id="admin-setup-controls" class="hidden">
+        <button id="btn-modal-start" class="btn-start" style="width:100%;margin-top:10px;" onclick="startGame()">התחל משחק</button>
+    </div>
+
+    <!-- In-game settings (gear icon) -->
+    <div id="admin-edit-controls" class="hidden">
+        <button id="btn-change-teams"
+            style="width:100%;margin-bottom:15px;padding:12px;border-radius:12px;border:2px solid #e67e22;background:#fdf2e9;color:#d35400;font-weight:bold;cursor:pointer;"
+            onclick="restartToTeamSelection()">החלפת קבוצות (התחל מחדש)</button>
+        <button id="btn-end-game"
+            style="width:100%;margin-bottom:15px;padding:12px;border-radius:12px;border:2px solid #c0392b;background:#fadbd8;color:#900;font-weight:bold;cursor:pointer;"
+            onclick="endGameAndReset()">סיים משחק (מחק חדר)</button>
+        <p id="edit-warning" style="color:#e74c3c;font-size:14px;font-weight:bold;margin-bottom:15px;">שינוי הגדרות יתחיל את המשחק מחדש</p>
+        <div style="display:flex;gap:10px;">
+            <button id="btn-modal-confirm" class="btn-start" style="flex:1;margin-top:0;" onclick="confirmSettings()">אישור</button>
+            <button id="btn-modal-cancel"
+                style="flex:1;padding:18px;border-radius:12px;border:2px solid #ccc;background:#eee;font-weight:bold;cursor:pointer;"
+                onclick="closeModal()">ביטול</button>
+        </div>
+    </div>
+
+    <!-- Non-admin waiting message (before game starts) -->
+    <div id="non-admin-msg" class="hidden" style="margin-top:20px;color:#777;font-weight:bold;font-size:16px;">
+        ממתין למנהל החדר שיתחיל את המשחק...
+    </div>
+</div>
+```
+
 </div>
 
 <!-- Winner Modal -->
+
 <div id="winner-modal" class="modal-overlay hidden">
     <div class="modal-content">
         <h1 id="winner-title" style="font-size:30px;margin-top:0;margin-bottom:10px;"></h1>
@@ -248,6 +269,7 @@
 </div>
 
 <!-- Main board -->
+
 <div id="shared-board">
     <div class="top-info">
         <div style="display:flex;gap:10px;align-items:flex-start;flex:2;">
@@ -271,27 +293,33 @@
     <button id="btn-start-turn" class="btn-start hidden">התחל תור</button>
     <div id="role-message" class="message-box hidden"></div>
 
-    <div id="shuffling-ui" class="message-box hidden"
-        style="background-color:#fff3cd;color:#856404;border-color:#ffeeba;">
-        <h3 id="txt-shuffling" style="margin-top:0;">מערבב חפיסה מחדש...</h3>
-        <div class="loader" id="shuffling-loader"></div>
-        <button id="btn-resume-play" class="btn-start hidden" onclick="resumePlay()"
-            style="width:100%;margin-top:10px;">חזור לשחק</button>
-    </div>
+```
+<!-- BUG 3 FIX — last card error message -->
+<div id="last-card-error" class="error-box hidden"></div>
 
-    <div id="card-container" class="card hidden">
-        <div id="card-role-title"></div>
-        <div class="main-word-container">
-            <span id="card-icon" class="card-icon">🖼️</span>
-            <span class="main-word" id="main-word">מילה</span>
-        </div>
-        <ul class="taboo-list" id="taboo-words"></ul>
-    </div>
+<div id="shuffling-ui" class="message-box hidden"
+    style="background-color:#fff3cd;color:#856404;border-color:#ffeeba;">
+    <h3 id="txt-shuffling" style="margin-top:0;">מערבב חפיסה מחדש...</h3>
+    <div class="loader" id="shuffling-loader"></div>
+    <button id="btn-resume-play" class="btn-start hidden" onclick="resumePlay()"
+        style="width:100%;margin-top:10px;">חזור לשחק</button>
+</div>
 
-    <div id="controls" class="controls hidden">
-        <button id="btn-skip"    class="action-btn btn-skip">פס / דילוג</button>
-        <button id="btn-correct" class="action-btn btn-correct">הצליחו!</button>
+<div id="card-container" class="card hidden">
+    <div id="card-role-title"></div>
+    <div class="main-word-container">
+        <span id="card-icon" class="card-icon">🖼️</span>
+        <span class="main-word" id="main-word">מילה</span>
     </div>
+    <ul class="taboo-list" id="taboo-words"></ul>
+</div>
+
+<div id="controls" class="controls hidden">
+    <button id="btn-skip"    class="action-btn btn-skip">פס / דילוג</button>
+    <button id="btn-correct" class="action-btn btn-correct">הצליחו!</button>
+</div>
+```
+
 </div>
 
 <script type="module">
@@ -361,7 +389,6 @@ const CARDS_EN = [
     {word:"Cat",       icon:"🐱", taboo:["Meow","Dog","Animal","Whiskers","Tail","Litter"]}
 ];
 
-// Both decks must have the same length — this is enforced here once
 console.assert(CARDS_HE.length === CARDS_EN.length, "Card decks must be the same length!");
 const DECK_SIZE = CARDS_HE.length;
 
@@ -387,6 +414,7 @@ const i18n = {
         restartBtn:"התחל מחדש", waitingRestart:"ממתין למנהל החדר שיתחיל מחדש...",
         shuffling:"מערבב חפיסה מחדש...", backToPlay:"חזור לשחק",
         roomInvalidChars:"שם החדר לא יכול להכיל: . # $ [ ] /",
+        lastCardError:"⚠️ כרטיס אחרון בקופה — לא ניתן לדלג!",
         cards: CARDS_HE
     },
     en: {
@@ -410,6 +438,7 @@ const i18n = {
         restartBtn:"Restart Game", waitingRestart:"Waiting for room admin to restart...",
         shuffling:"Shuffling deck...", backToPlay:"Back to play",
         roomInvalidChars:"Room name cannot contain: . # $ [ ] /",
+        lastCardError:"⚠️ Last card in deck — cannot skip!",
         cards: CARDS_EN
     }
 };
@@ -426,7 +455,6 @@ function shuffleArray(array) {
 }
 
 function freshDeck() {
-    // Returns a shuffled array of all card indices
     return shuffleArray(Array.from({ length: DECK_SIZE }, (_, i) => i));
 }
 
@@ -437,7 +465,6 @@ function formatTime(seconds) {
     return `${m < 10 ? '0'+m : m}:${r < 10 ? '0'+r : r}`;
 }
 
-// FIX #12 — sanitize room name: Firebase paths cannot contain . # $ [ ] /
 function sanitizeRoomId(raw) {
     return raw.replace(/[.#$[\]/]/g, '_');
 }
@@ -452,16 +479,18 @@ let myTeamId           = null;
 let myPlayerNumber     = null;
 let myJoinTime         = null;
 let isEditMode         = false;
+// BUG 1 FIX — track whether admin has manually chosen a difficulty this session
+let adminDifficultySet = false;
 let pendingDifficulty  = 'medium';
 let turnManager        = null;
 let localTimerInterval = null;
 let lastDisplayedCardIndex = -1;
 
-// FIX #2 — double-tap guard
 let isProcessingCard   = false;
-
-// FIX #3 — store endTurn setTimeout reference
 let endTurnTimeout     = null;
+
+// BUG 3 FIX — timeout ref for auto-hiding last-card error
+let lastCardErrorTimeout = null;
 
 const MAX_STEPS = 30;
 const teamColors   = { blue:'#2874A6', red:'#943126', purple:'#6C3483', green:'#1E8449', yellow:'#B7950B' };
@@ -490,6 +519,7 @@ const uiRoleMessage      = document.getElementById('role-message');
 const uiCardRoleTitle    = document.getElementById('card-role-title');
 const uiPlayersCount     = document.getElementById('players-count');
 const uiPlayerInfoDisplay = document.getElementById('player-info-display');
+const uiLastCardError    = document.getElementById('last-card-error');
 
 // ─── Language toggle ──────────────────────────────────────────────────────────
 window.toggleLanguage = function() {
@@ -568,23 +598,18 @@ class GameTurnManager {
             currentCardIndex: deck[0],
             describerId:      null,
             lastDescriberId:  null,
-            // FIX #10 — no resetTimestamp on fresh room
             resetTimestamp:   null
         };
     }
 
-    // FIX #1 — use runTransaction to safely create room only if absent,
-    // preventing race condition when two players enter simultaneously.
     async connect() {
         const roomRef = this.roomRef;
         const initialState = this._buildInitialState();
 
         await runTransaction(roomRef, (currentData) => {
             if (currentData === null) {
-                // Room doesn't exist — create it atomically
                 return initialState;
             }
-            // Room already exists — leave it untouched
             return currentData;
         });
     }
@@ -600,10 +625,8 @@ class GameTurnManager {
         onValue(this.roomRef, (snapshot) => {
             const newState = snapshot.val();
 
-            // Room deleted
             if (!newState) { goToLobby(); return; }
 
-            // FIX #10 — only trigger reset if resetTimestamp > myJoinTime AND is non-null
             if (newState.resetTimestamp && myJoinTime && newState.resetTimestamp > myJoinTime) {
                 goToLobby();
                 return;
@@ -611,25 +634,21 @@ class GameTurnManager {
 
             this.currentState = newState;
 
-            // Compute playerCount per team
             if (newState.teams) {
                 newState.teams.forEach(t => {
                     t.playerCount = t.players ? Object.keys(t.players).length : 0;
                 });
             }
 
-            // Room cleanup: last player removes whole room on disconnect
             const allPlayers = newState.players ? Object.keys(newState.players) : [];
             if (allPlayers.length === 1 && allPlayers[0] === this.playerId) {
                 onDisconnect(this.roomRef).remove();
             } else {
                 onDisconnect(this.roomRef).cancel();
-                // Always keep own presence-remove active
                 const myPresenceRef = ref(db, `rooms/${this.roomRef.key}/players/${this.playerId}`);
                 onDisconnect(myPresenceRef).remove();
             }
 
-            // Admin transfer: if admin is gone, oldest remaining player takes over
             const isAdminPresent = newState.adminId &&
                 newState.players && newState.players[newState.adminId];
 
@@ -643,7 +662,6 @@ class GameTurnManager {
                 }
             }
 
-            // Skip empty teams during transitioning
             if (newState.turnStatus === 'transitioning' && newState.teams) {
                 const curTeam = newState.teams[newState.currentTeamIndex];
                 if (curTeam && curTeam.playerCount === 0) {
@@ -673,7 +691,6 @@ class GameTurnManager {
         const state = this.currentState;
         if (!state || state.turnStatus !== 'active') return;
 
-        // Find next team with players
         let nextTeamIndex = state.currentTeamIndex;
         for (let i = 1; i <= state.teams.length; i++) {
             const idx = (state.currentTeamIndex + i) % state.teams.length;
@@ -685,10 +702,8 @@ class GameTurnManager {
 
         await update(this.roomRef, { turnStatus: 'ended', lastDescriberId: state.describerId });
 
-        // FIX #3 — store timeout reference so it can be cancelled on goToLobby
         endTurnTimeout = setTimeout(async () => {
             endTurnTimeout = null;
-            // Guard: turnManager might be null if user left during the 3s window
             if (!turnManager) return;
             await update(this.roomRef, {
                 currentTeamIndex: nextTeamIndex,
@@ -705,8 +720,17 @@ class GameTurnManager {
         if (state.turnStatus !== 'active') return;
         if (state.describerId !== this.playerId) return;
 
-        // FIX #2 — prevent double-tap race condition
         if (isProcessingCard) return;
+
+        // ── BUG 3 FIX — block skip when only 1 card remains in deck ──────────
+        if (!isCorrect) {
+            const deckLen = (state.deck || []).length;
+            if (deckLen <= 1) {
+                showLastCardError();
+                return;
+            }
+        }
+
         isProcessingCard = true;
 
         try {
@@ -714,22 +738,16 @@ class GameTurnManager {
             const currentCard = deck.shift();
 
             if (!isCorrect) {
-                // Skip → return to bottom of deck
+                // BUG 5 FIX — skip deducts a point (min 0)
                 deck.push(currentCard);
             }
-            // Correct → card is permanently removed this round
 
             const isDeckEmpty = (deck.length === 0);
             if (isDeckEmpty) {
-                // FIX #8 — reshuffle excludes cards already scored this session
-                // We keep track via usedCardIndices on the state
                 const usedSet = new Set(state.usedCardIndices || []);
-                // Add currently discarded card to used set if correct
                 if (isCorrect) usedSet.add(currentCard);
-                // Build fresh pool from cards not yet seen since last full reset
                 let pool = Array.from({ length: DECK_SIZE }, (_, i) => i).filter(i => !usedSet.has(i));
                 if (pool.length === 0) {
-                    // All cards exhausted — full reset
                     pool = Array.from({ length: DECK_SIZE }, (_, i) => i);
                     usedSet.clear();
                 }
@@ -741,10 +759,14 @@ class GameTurnManager {
             if (isCorrect) {
                 const activeTeam = state.teams[state.currentTeamIndex];
                 updates[`teams/${state.currentTeamIndex}/score`] = (activeTeam.score || 0) + 1;
-                // Track used cards to avoid repeats (FIX #8)
                 const used = [...(state.usedCardIndices || [])];
                 if (!used.includes(currentCard)) used.push(currentCard);
                 updates.usedCardIndices = used;
+            } else {
+                // BUG 5 FIX — deduct 1 point on skip, floor at 0
+                const activeTeam = state.teams[state.currentTeamIndex];
+                const newScore = Math.max(0, (activeTeam.score || 0) - 1);
+                updates[`teams/${state.currentTeamIndex}/score`] = newScore;
             }
 
             if (isDeckEmpty) {
@@ -754,7 +776,6 @@ class GameTurnManager {
                 updates.timeLeft         = timeLeft;
                 updates.deck             = deck;
                 updates.currentCardIndex = deck[0];
-                // Reset used set after full reshuffle
                 if (!updates.usedCardIndices) updates.usedCardIndices = state.usedCardIndices || [];
             } else {
                 updates.deck             = deck;
@@ -763,10 +784,20 @@ class GameTurnManager {
 
             await update(this.roomRef, updates);
         } finally {
-            // FIX #2 — always release the lock, even on Firebase error
             isProcessingCard = false;
         }
     }
+}
+
+// ─── BUG 3 FIX — show/hide last card error ───────────────────────────────────
+function showLastCardError() {
+    uiLastCardError.textContent = i18n[lang].lastCardError;
+    uiLastCardError.classList.remove('hidden');
+    if (lastCardErrorTimeout) clearTimeout(lastCardErrorTimeout);
+    lastCardErrorTimeout = setTimeout(() => {
+        uiLastCardError.classList.add('hidden');
+        lastCardErrorTimeout = null;
+    }, 2500);
 }
 
 // ─── enterRoom ────────────────────────────────────────────────────────────────
@@ -780,7 +811,6 @@ window.enterRoom = async function() {
         return;
     }
 
-    // FIX #12 — validate forbidden Firebase path characters
     if (hasInvalidChars(rawName)) {
         errEl.textContent = i18n[lang].roomInvalidChars;
         errEl.style.display = 'block';
@@ -788,17 +818,19 @@ window.enterRoom = async function() {
     }
     errEl.style.display = 'none';
 
-    const roomId = rawName; // no silent replacement — show error instead
+    const roomId = rawName;
     uiLobby.style.display = 'none';
     myJoinTime = Date.now();
+
+    // BUG 1 FIX — reset difficulty flag so admin's fresh choice is respected
+    adminDifficultySet = false;
+    pendingDifficulty  = 'medium';
 
     const roomRef = ref(db, 'rooms/' + roomId);
     turnManager   = new GameTurnManager(roomRef, myPlayerId);
 
-    // FIX #1 — atomic create-if-absent via transaction
     await turnManager.connect();
 
-    // Register presence AFTER room exists
     turnManager.registerPresence();
 
     turnManager.events.onStateUpdate = (state) => renderState(state);
@@ -807,7 +839,6 @@ window.enterRoom = async function() {
 
 // ─── goToLobby ────────────────────────────────────────────────────────────────
 window.goToLobby = function() {
-    // FIX #3 — cancel pending endTurn timeout
     if (endTurnTimeout) { clearTimeout(endTurnTimeout); endTurnTimeout = null; }
 
     if (turnManager) {
@@ -832,10 +863,14 @@ window.goToLobby = function() {
     myPlayerNumber        = null;
     isEditMode            = false;
     lastDisplayedCardIndex = -1;
-    isProcessingCard      = false; // FIX #2 — reset lock on lobby return
+    isProcessingCard      = false;
+    // BUG 1 FIX — reset difficulty state on lobby return
+    adminDifficultySet    = false;
+    pendingDifficulty     = 'medium';
 
     if (localTimerInterval)       { clearInterval(localTimerInterval);      localTimerInterval      = null; }
     if (window._shufflingTimeout) { clearTimeout(window._shufflingTimeout); window._shufflingTimeout = null; }
+    if (lastCardErrorTimeout)     { clearTimeout(lastCardErrorTimeout);      lastCardErrorTimeout     = null; }
 
     uiLobby.style.display = 'flex';
     uiModal.classList.add('hidden');
@@ -845,6 +880,7 @@ window.goToLobby = function() {
     document.getElementById('controls').classList.add('hidden');
     uiRoleMessage.classList.add('hidden');
     uiBtnStartTurn.classList.add('hidden');
+    uiLastCardError.classList.add('hidden');
 
     updatePlayerInfoDisplay();
     uiPlayersCount.textContent = i18n[lang].waitingPlayers;
@@ -860,7 +896,6 @@ window.selectTeam = async function(teamId) {
     const state  = turnManager.currentState;
     const roomId = turnManager.roomRef.key;
 
-    // Leave old team
     for (let i = 0; i < state.teams.length; i++) {
         if (state.teams[i].players && state.teams[i].players[myPlayerId]) {
             const oldRef = ref(db, `rooms/${roomId}/teams/${i}/players/${myPlayerId}`);
@@ -869,11 +904,9 @@ window.selectTeam = async function(teamId) {
         }
     }
 
-    // Join new team — FIX #4: use timestamp-based unique number
     const teamIndex    = state.teams.findIndex(t => t.id === teamId);
     const teamPlayers  = state.teams[teamIndex].players || {};
     const existingNums = Object.values(teamPlayers).map(p => p.num || 0);
-    // Use a timestamp-derived number to avoid duplicates across simultaneous joins
     const pNumber = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
 
     const playerRef = ref(db, `rooms/${roomId}/teams/${teamIndex}/players/${myPlayerId}`);
@@ -901,7 +934,9 @@ function highlightSelectedTeamBtn() {
 window.setDifficulty = function(level) {
     if (!turnManager?.currentState) return;
     if (turnManager.currentState.adminId !== myPlayerId) return;
-    pendingDifficulty = level;
+    // BUG 1 FIX — mark that admin has explicitly chosen a difficulty
+    adminDifficultySet = true;
+    pendingDifficulty  = level;
     updateDifficultyUI(level);
 };
 
@@ -933,15 +968,18 @@ window.startGame = function() {
         alert(lang === 'he' ? "אנא בחר קבוצה קודם!" : "Please select a team first!");
         return;
     }
-    update(turnManager.roomRef, { gameStarted: true, difficulty: pendingDifficulty });
+    // BUG 1 FIX — only write pendingDifficulty if admin explicitly set it,
+    // otherwise keep whatever is already stored in Firebase
+    const diffToWrite = adminDifficultySet
+        ? pendingDifficulty
+        : (turnManager.currentState.difficulty || 'medium');
+    update(turnManager.roomRef, { gameStarted: true, difficulty: diffToWrite });
 };
 
 // ─── resumePlay (after shuffling) ────────────────────────────────────────────
 window.resumePlay = async function() {
     if (!turnManager?.currentState) return;
     const state = turnManager.currentState;
-
-    // FIX #7 — only the current describer can resume
     if (state.describerId !== myPlayerId) return;
 
     await update(turnManager.roomRef, {
@@ -999,7 +1037,6 @@ window.confirmSettings = async function() {
     const deck    = freshDeck();
     const state   = turnManager.currentState;
 
-    // FIX #6 — find first team index that actually has players
     let firstTeamIdx = 0;
     for (let i = 0; i < state.teams.length; i++) {
         if (state.teams[i].playerCount > 0) { firstTeamIdx = i; break; }
@@ -1013,9 +1050,9 @@ window.confirmSettings = async function() {
         turnStartTime:      null,
         describerId:        null,
         lastDescriberId:    null,
-        currentTeamIndex:   firstTeamIdx,  // FIX #6
+        currentTeamIndex:   firstTeamIdx,
         gameStarted:        true,
-        usedCardIndices:    []             // FIX #8 reset
+        usedCardIndices:    []
     };
     state.teams.forEach((_, i) => { updates[`teams/${i}/score`] = 0; });
     await update(turnManager.roomRef, updates);
@@ -1036,22 +1073,16 @@ window.restartToTeamSelection = async function() {
         describerId:      null,
         lastDescriberId:  null,
         currentTeamIndex: 0,
-        usedCardIndices:  []  // FIX #8 reset
+        usedCardIndices:  []
     };
     state.teams.forEach((_, i) => { updates[`teams/${i}/score`] = 0; });
     await update(turnManager.roomRef, updates);
 };
 
 // ─── endGameAndReset ──────────────────────────────────────────────────────────
-// FIX #10 — after broadcasting resetTimestamp, admin goes to lobby too.
-// When admin re-enters the same room name, connect() via runTransaction will
-// find the old record. We clear resetTimestamp inside the transaction so a
-// returning admin always gets a clean slate.
 window.endGameAndReset = async function() {
     if (turnManager.currentState.adminId !== myPlayerId) return;
-    // Broadcast reset to all OTHER players
     await update(turnManager.roomRef, { resetTimestamp: Date.now() });
-    // Admin also leaves — goToLobby cleans up presence
     goToLobby();
 };
 
@@ -1111,7 +1142,6 @@ function loadCardIfNeeded(index, difficultyLevel) {
     if (index === lastDisplayedCardIndex) return;
     lastDisplayedCardIndex = index;
 
-    // FIX #11 — safe card lookup with bounds check
     const cards = i18n[lang].cards;
     const card  = (index >= 0 && index < cards.length) ? cards[index] : null;
     if (!card) return;
@@ -1145,6 +1175,12 @@ function renderState(state) {
     updatePlayerInfoDisplay();
     highlightSelectedTeamBtn();
 
+    // ── BUG 1 FIX — only sync pendingDifficulty from Firebase if admin hasn't
+    // manually chosen one yet in this session (prevents reset after team pick)
+    if (isAdmin && !adminDifficultySet) {
+        pendingDifficulty = state.difficulty || 'medium';
+    }
+
     // ── Modal logic ──────────────────────────────────────────────────────────
     if (!isEditMode) {
         if (!state.gameStarted) {
@@ -1156,8 +1192,10 @@ function renderState(state) {
                 document.getElementById('admin-edit-controls').classList.add('hidden');
                 document.getElementById('non-admin-msg').classList.add('hidden');
                 document.getElementById('non-admin-note').classList.add('hidden');
-                pendingDifficulty = state.difficulty || 'medium';
-                updateDifficultyUI(pendingDifficulty);
+                // BUG 1 FIX — only update UI from state if admin hasn't set manually
+                if (!adminDifficultySet) {
+                    updateDifficultyUI(state.difficulty || 'medium');
+                }
             } else {
                 document.getElementById('difficulty-group').classList.add('hidden');
                 document.getElementById('admin-setup-controls').classList.add('hidden');
@@ -1166,6 +1204,9 @@ function renderState(state) {
                 document.getElementById('non-admin-note').classList.add('hidden');
             }
         } else if (!myTeamId) {
+            // BUG 2 FIX — game is started but this player has no team yet:
+            // always show team selection. This handles the case where admin
+            // closes + immediately re-enters the same active room.
             uiModal.classList.remove('hidden');
             document.getElementById('team-selection-group').classList.remove('hidden');
             document.getElementById('difficulty-group').classList.add('hidden');
@@ -1188,7 +1229,6 @@ function renderState(state) {
         ? `${d.playersConnected} - ${playersText.join(' | ')}`
         : d.waitingChoose;
 
-    // ── FIX #5 — Winner check: only teams with active players ────────────────
     const winnerTeam = state.teams.find(t => (t.score || 0) >= MAX_STEPS && t.playerCount > 0);
     if (winnerTeam) {
         if (localTimerInterval) { clearInterval(localTimerInterval); localTimerInterval = null; }
@@ -1224,7 +1264,6 @@ function renderState(state) {
         uiBtnStartTurn.classList.add('hidden');
         document.getElementById('shuffling-ui').classList.remove('hidden');
 
-        // FIX #7 — only the active describer controls the shuffle resume
         const isDescriber = state.describerId === myPlayerId;
         document.getElementById('shuffling-loader').classList.remove('hidden');
         document.getElementById('btn-resume-play').classList.add('hidden');
@@ -1232,7 +1271,6 @@ function renderState(state) {
         if (isDescriber && !window._shufflingTimeout) {
             window._shufflingTimeout = setTimeout(() => {
                 window._shufflingTimeout = null;
-                // FIX #7 — verify this player is still the describer before showing button
                 if (turnManager?.currentState?.describerId === myPlayerId &&
                     turnManager?.currentState?.turnStatus === 'shuffling') {
                     document.getElementById('shuffling-loader').classList.add('hidden');
@@ -1275,11 +1313,25 @@ function renderState(state) {
         uiStatus.style.color    = teamColors[currentTeam.id];
 
         if (myTeamId !== currentTeam.id) {
-            uiRoleMessage.classList.add('hidden');
-            uiCardContainer.classList.remove('hidden');
-            document.getElementById('controls').classList.add('hidden');
-            uiCardRoleTitle.textContent = d.roleInspector;
-            loadCardIfNeeded(state.currentCardIndex, state.difficulty);
+            // BUG 4 FIX — only show inspector view if the active team has 2+ players.
+            // With a single-player team there is no one to "inspect" — just show whose turn it is.
+            const activeTeamHasMultiplePlayers = currentTeam.playerCount >= 2;
+            if (activeTeamHasMultiplePlayers) {
+                uiRoleMessage.classList.add('hidden');
+                uiCardContainer.classList.remove('hidden');
+                document.getElementById('controls').classList.add('hidden');
+                uiCardRoleTitle.textContent = d.roleInspector;
+                loadCardIfNeeded(state.currentCardIndex, state.difficulty);
+            } else {
+                // Solo team active — other teams just see whose turn it is
+                uiCardContainer.classList.add('hidden');
+                document.getElementById('controls').classList.add('hidden');
+                uiRoleMessage.classList.remove('hidden');
+                uiRoleMessage.textContent = `${d.turnOf}${d.teamNames[currentTeam.id]}${d.teamSuffix}!`;
+                uiRoleMessage.style.backgroundColor = teamBgColors[currentTeam.id];
+                uiRoleMessage.style.color           = teamColors[currentTeam.id];
+                uiRoleMessage.style.borderColor     = teamColors[currentTeam.id];
+            }
         } else if (state.describerId === myPlayerId) {
             uiRoleMessage.classList.add('hidden');
             uiCardContainer.classList.remove('hidden');
@@ -1291,6 +1343,9 @@ function renderState(state) {
             document.getElementById('controls').classList.add('hidden');
             uiRoleMessage.classList.remove('hidden');
             uiRoleMessage.textContent = d.roleGuesser;
+            uiRoleMessage.style.backgroundColor = '';
+            uiRoleMessage.style.color           = '';
+            uiRoleMessage.style.borderColor     = '';
         }
         return;
     }
@@ -1331,7 +1386,6 @@ uiBtnStartTurn.addEventListener('click', () => { if (turnManager) turnManager.st
 document.getElementById('btn-correct').addEventListener('click', () => { if (turnManager) turnManager.drawCard(true); });
 document.getElementById('btn-skip').addEventListener('click',    () => { if (turnManager) turnManager.drawCard(false); });
 
-// Allow Enter key in room input
 document.getElementById('room-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') enterRoom();
 });
@@ -1339,5 +1393,6 @@ document.getElementById('room-input').addEventListener('keydown', (e) => {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 updateStaticText();
 </script>
+
 </body>
 </html>
