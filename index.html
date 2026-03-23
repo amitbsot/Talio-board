@@ -516,12 +516,31 @@ class GameTurnManager {
             deck,currentCardIndex:deck[0],describerId:null,lastDescriberId:null,resetTimestamp:null};
     }
     async connect(){const init=this._buildInitialState();await runTransaction(this.roomRef,cur=>cur===null?init:cur);}
-    registerPresence(){
-        const pr=ref(db,`rooms/${this.roomRef.key}/players/${myPlayerId}`);
-        set(pr,{joinTime:myJoinTime,active:true}); onDisconnect(pr).remove();
+    async registerPresence(){
+        const roomKey=this.roomRef.key;
+        // Wipe any stale presence + team slots from a previous session
+        const staleSnap=await get(this.roomRef).catch(()=>null);
+        if(staleSnap&&staleSnap.val()){
+            const sv=staleSnap.val();
+            // Remove stale presence
+            try{await remove(ref(db,`rooms/${roomKey}/players/${myPlayerId}`));}catch(e){}
+            // Remove stale team memberships
+            if(sv.teams){
+                for(let i=0;i<sv.teams.length;i++){
+                    if(sv.teams[i].players&&sv.teams[i].players[myPlayerId]){
+                        try{await remove(ref(db,`rooms/${roomKey}/teams/${i}/players/${myPlayerId}`));}catch(e){}
+                    }
+                }
+            }
+        }
+        const pr=ref(db,`rooms/${roomKey}/players/${myPlayerId}`);
+        await set(pr,{joinTime:myJoinTime,active:true});
+        onDisconnect(pr).remove();
     }
     listenToState(){
-        onValue(this.roomRef,snap=>{
+        // Detach previous listener to prevent duplicate subscriptions on re-entry
+        if(this._unsub){this._unsub();this._unsub=null;}
+        this._unsub=onValue(this.roomRef,snap=>{
             const s=snap.val();
             if(!s){goToLobby();return;}
             if(s.resetTimestamp&&myJoinTime&&s.resetTimestamp>myJoinTime){goToLobby();return;}
@@ -618,7 +637,7 @@ window.enterRoom=async function(){
     myJoinTime=Date.now();
     adminDifficultyChosen=false; pendingDifficulty='medium';
     turnManager=new GameTurnManager(ref(db,'rooms/'+raw),myPlayerId);
-    await turnManager.connect(); turnManager.registerPresence();
+    await turnManager.connect(); await turnManager.registerPresence();
     turnManager.events.onStateUpdate=renderState; turnManager.listenToState();
 };
  
@@ -631,7 +650,9 @@ window.goToLobby=function(){
         const rid=turnManager.roomRef.key;
         const pr=ref(db,`rooms/${rid}/players/${myPlayerId}`); onDisconnect(pr).cancel(); remove(pr);
         if(myTeamId){const ti=(turnManager.currentState?.teams||[]).findIndex(t=>t.id===myTeamId);if(ti>=0){const tr=ref(db,`rooms/${rid}/teams/${ti}/players/${myPlayerId}`);onDisconnect(tr).cancel();remove(tr);}}
-        turnManager.events.onStateUpdate=()=>{}; turnManager=null;
+        turnManager.events.onStateUpdate=()=>{};
+        if(turnManager._unsub){turnManager._unsub();turnManager._unsub=null;}
+        turnManager=null;
     }
     myTeamId=null;myPlayerNumber=null;isEditMode=false;lastDisplayedCardIndex=-1;isProcessingCard=false;
     adminDifficultyChosen=false;pendingDifficulty='medium';
